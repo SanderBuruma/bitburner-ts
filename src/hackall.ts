@@ -11,6 +11,7 @@ export async function main(ns: NS) {
   let sqlExists = ns.fileExists('SQLInject.exe', 'home')
 
   let maxPorts = ports_we_can_hack(ns)
+  let nuked_something = false
   allServers.forEach(s=>{
     if (ns.getServerNumPortsRequired(s) <= maxPorts) {
       if (bruteExists) ns.brutessh(s)
@@ -20,8 +21,13 @@ export async function main(ns: NS) {
       if (ftpExists) ns.ftpcrack(s)
       ns.nuke(s)
       ns.tprintf(s + ' has been nuked')
+      nuked_something = true
     }
   })
+
+  if (nuked_something) {
+    ns.exec('scp2all.js', 'home')
+  }
 }
 
 export function ports_we_can_hack(ns: NS) {

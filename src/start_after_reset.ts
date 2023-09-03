@@ -54,6 +54,7 @@ async function initBitNode(ns: NS) {
   await xrun(ns, 'simple/commit_crime.js', 1, 'Rob Store')
   await ns.sleep(50)
   let hack_repeat_pid = ns.run('repeat/hack.js', Math.floor((ns.getServerMaxRam('home') - ns.getServerUsedRam('home')) / 1.7), 'foodnstuff')
+  log(ns, 'Waiting to upgrade home RAM')
   while (ns.getPlayer().money < ns.singularity.getUpgradeHomeRamCost()) await ns.sleep(50)
   ns.kill(hack_repeat_pid)
   await ns.sleep(50)
