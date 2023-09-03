@@ -23,17 +23,17 @@ export function scan_all(ns: NS) {
 }
 
 
-export function root_servers(ns: NS) {
+export function rooted_servers(ns: NS) {
   return scan_all(ns).filter(s=>ns.hasRootAccess(s))
   .sort((a,b)=>ns.getServerMaxRam(b)-ns.getServerMaxRam(a))
 }
 
-export function nonroot_servers(ns: NS) {
+export function nonrooted_servers(ns: NS) {
   return scan_all(ns).filter(s=>!ns.hasRootAccess(s))
 }
 
 export function servers_with_ram(ns: NS, treshold = 16) {
-  return root_servers(ns)
+  return rooted_servers(ns)
   .filter(s=>ns.getServerMaxRam(s) - ns.getServerUsedRam(s) > treshold)
   .sort((a,b)=>ns.getServerMaxRam(b) - ns.getServerMaxRam(a))
 }
@@ -50,7 +50,7 @@ export function total_max_ram(ns: NS, all = false) {
 export function purchased_and_homeserver(ns: NS, withHome=true, allroot=true) {
   let servers = ns.getPurchasedServers()
   if (allroot) {
-    servers = root_servers(ns)
+    servers = rooted_servers(ns)
   }
   else if (withHome) servers.push('home')
   servers = servers.filter(s=>ns.getServerMaxRam(s) - ns.getServerUsedRam(s))
@@ -72,7 +72,7 @@ export function available_ram(ns: NS, minimum_ram = 8) {
 
 /** @return boolean whether or not the script was run */
 export function run_script(ns: NS, scriptName: string, threads: number, ...aargs: string[]) {
-  let servers = root_servers(ns)
+  let servers = rooted_servers(ns)
   for (let s of servers) {
     let pid
     let availableRam = ns.getServerMaxRam(s) - ns.getServerUsedRam(s)

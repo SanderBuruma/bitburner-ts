@@ -1,11 +1,11 @@
-import { root_servers } from 'helpers/servers.js'
+import { rooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 /** @description use all servers for weaken repeats*/
 export async function main(ns: NS) {
   ns.disableLog('ALL')
   while (true) {
-    let servers = root_servers(ns)
+    let servers = rooted_servers(ns)
     for (let s of servers) {
       let threads = Math.floor((ns.getServerMaxRam(s) - ns.getServerUsedRam(s))/2)
       if (threads > 0) {

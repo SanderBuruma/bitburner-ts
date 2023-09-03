@@ -1,4 +1,4 @@
-import { root_servers } from 'helpers/servers.js'
+import { rooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
@@ -12,7 +12,7 @@ export async function main(ns: NS) {
 }
 
 export function execute(ns: NS) {
-  let servers = root_servers(ns)
+  let servers = rooted_servers(ns)
   let filterByMinSecurity = ns.args[0]
 
   servers = servers

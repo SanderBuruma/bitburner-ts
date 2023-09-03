@@ -1,8 +1,8 @@
-import { root_servers, servers_with_ram } from 'helpers/servers.js'
+import { rooted_servers, servers_with_ram } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
-  let servers = root_servers(ns)
+  let servers = rooted_servers(ns)
   servers = servers.sort((a,b)=>ns.getServerMinSecurityLevel(a) - ns.getServerMinSecurityLevel(b))
 
   for (let s of servers) {

@@ -1,4 +1,4 @@
-import { root_servers, available_ram } from 'helpers/servers.js'
+import { rooted_servers, available_ram } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 let exploitTiming: number
@@ -57,7 +57,7 @@ export async function main(ns: NS) {
       }
     } else if (runmode === 'weaken') {
 
-      let own_servers = root_servers(ns)
+      let own_servers = rooted_servers(ns)
 
       own_servers.forEach(s => {
         ns.scp('simple/weaken.js', s, 'home')
@@ -95,7 +95,7 @@ export async function main(ns: NS) {
       runmode = 'analyze'
     } else if (runmode === 'grow') {
 
-      let own_servers = root_servers(ns)
+      let own_servers = rooted_servers(ns)
 
       own_servers.forEach(s => {
         ns.scp('simple/grow.js', s, 'home')
@@ -139,7 +139,7 @@ export async function main(ns: NS) {
 
       if (threadsCount == 0) {
         let weakenThreads = Math.ceil(Math.max(maxThreads / 12.5))
-        let servers = root_servers(ns).sort((a, b) => {
+        let servers = rooted_servers(ns).sort((a, b) => {
           return (ns.getServerMaxRam(b) - ns.getServerUsedRam(b)) -
             (ns.getServerMaxRam(a) - ns.getServerUsedRam(a))
         })
@@ -175,7 +175,7 @@ export async function main(ns: NS) {
       exploit_start_time = Date.now()
       while (totalThreads * 1.85 < available_ram(ns)) {
         await ns.sleep(0)
-        let hosts = root_servers(ns)
+        let hosts = rooted_servers(ns)
           .sort((a, b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a))
           .filter(s => ns.getScriptRam('batch/once.js') + ns.getServerUsedRam(s) < ns.getServerMaxRam(s))
         let host = hosts[0]

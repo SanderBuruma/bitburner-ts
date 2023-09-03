@@ -1,9 +1,9 @@
-import { nonroot_servers } from 'helpers/servers.js'
+import { nonrooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
 
-  let allServers = nonroot_servers(ns)
+  let allServers = nonrooted_servers(ns)
   let bruteExists = ns.fileExists('BruteSSH.exe', 'home')
   let ftpExists = ns.fileExists('FTPCrack.exe', 'home')
   let relayExists = ns.fileExists('relaySMTP.exe', 'home')

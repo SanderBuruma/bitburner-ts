@@ -2,7 +2,7 @@ import { NS, ProcessInfo } from '@ns'
 import { kill_previous, log, set_log_settings } from 'helpers/utils.js'
 import { execute as list_money_targets} from 'list_money_targets.js'
 import { ports_we_can_hack } from './hackall'
-import { available_ram, root_servers, run_script, scan_all } from './helpers/servers'
+import { available_ram, rooted_servers, run_script, scan_all } from './helpers/servers'
 
 let last_home_ram
 let runmode = "InitBitNode"
@@ -180,7 +180,7 @@ async function buy_programs(ns: NS) {
 }
 
 async function backdoor_everything(ns: NS) {
-  let servers = root_servers(ns)
+  let servers = rooted_servers(ns)
 
   for (let s of servers) {
     let server = ns.getServer(s)
@@ -195,7 +195,7 @@ async function backdoor_everything(ns: NS) {
 
 async function update_batchers(ns: NS) {
   // Gather batching scripts
-  let servers = root_servers(ns)
+  let servers = rooted_servers(ns)
   let scripts: ProcessInfo[] = []
   scripts = scripts.filter(s=>s.filename == 'batch/initiate.js')
 
