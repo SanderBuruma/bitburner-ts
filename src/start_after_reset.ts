@@ -1,15 +1,16 @@
 import { NS, ProcessInfo } from '@ns'
-import { root_servers, available_ram, max_ram, run_script, kill_previous, log } from 'utils.js'
+import { root_servers, available_ram, scan_all, max_ram, run_script, kill_previous, log, set_log_settings } from 'utils.js'
 import { execute as list_money_targets} from 'list_money_targets.js'
+import { ports_we_can_hack } from './hackall'
 
 let last_home_ram
-let runmode
+let runmode = "InitBitNode"
 
 export async function main(ns: NS) {
 
-  ns.disableLog('ALL')
+  set_log_settings(ns, true, true, false)
   last_home_ram = ns.getServerMaxRam('home')
-  runmode = 'initiating'
+
   kill_previous(ns)
   ns.atExit(async ()=>{
     await xrun(ns, 'killall.js')
@@ -17,36 +18,73 @@ export async function main(ns: NS) {
   })
   log(ns, 'Starting ' + ns.getRunningScript()?.filename)
 
+  // The loop might at some point break from within
   while (true) {
     await ns.sleep(1e3)
-    
-    if (runmode === 'initiating') {
+    log(ns, "Running sar loop: runmode "+ runmode)
 
-      await xrun(ns, 'killall.js', 1, ns.getRunningScript()?.pid.toString()??'0')
-      await ns.sleep(50)
-      await xrun(ns, 'hackall.js')
-      await ns.sleep(50)
-      if (available_ram(ns) >= 256) {
-        await xrun(ns, 
-          'batch/initiate.js',
-          1, 
-          'foodnstuff', 
-          '1.8', 
-          Math.min(1.00004 ** ns.getServerMaxRam('home'), 1.5).toString(), 
-          '50'
-        )
-        await ns.sleep(50)
-        await xrun(ns, 'simple/commit_crime.js', 1, 'Rob Store')
-        await ns.sleep(50)
-      }
-      await xrun(ns, 'weaken_all_r.js')
-      await ns.sleep(50)
+    // Detect runmode
+    switch (runmode) {
+      case ("InitBitNode"):
+        await initBitNode(ns)
+        break;
+      case ("InitAfterReset"):
+        await initAfterReset(ns)
+        break;
+      case ("Operating"):
+        await operating(ns)
+        break;
+      default:
+        throw new Error(`runmode '${runmode}' not recognized`)
+    }
+  }
+}
 
-      log(ns, 'Initiated ' + ns.getRunningScript()?.filename)
+async function initBitNode(ns: NS) {
+  if (ns.getServerMaxRam('home') >= 64) {
+    runmode = "InitAfterReset"
+    return
+  }
 
-      runmode = 'operating'
+  await xrun(ns, 'hackall.js')
+  await ns.sleep(50)
+  await xrun(ns, 'simple/commit_crime.js', 1, 'Rob Store')
+  await ns.sleep(50)
+  let hack_repeat_pid = ns.run('repeat/hack.js', Math.floor((ns.getServerMaxRam('home') - ns.getServerUsedRam('home')) / 1.7), 'foodnstuff')
+  while (ns.getPlayer().money < ns.singularity.getUpgradeHomeRamCost()) await ns.sleep(50)
+  ns.kill(hack_repeat_pid)
+  await ns.sleep(50)
+  await xrun(ns, 'simple/upg_home_ram.js', 1)
+  await ns.sleep(50)
+  await xrun(ns, 'killall.js', 1, ns.getRunningScript()?.pid.toString()??'0')
+  await ns.sleep(50)
+}
 
-    } else if (runmode === 'operating') {
+async function initAfterReset(ns: NS) {
+  if (scan_all(ns).filter(s=>ns.getServerNumPortsRequired(s) > ports_we_can_hack(ns))) {
+    await xrun(ns, 'hackall.js')
+    await ns.sleep(50)
+  }
+  if (!ns.singularity.getCurrentWork()) {
+    await xrun(ns, 'simple/commit_crime.js', 1, 'Rob Store')
+    await ns.sleep(50)
+  }
+  if (available_ram(ns) >= 256) {
+    await xrun(ns, 
+      'batch/initiate.js',
+      1, 
+      'foodnstuff', 
+      '1.8', 
+      Math.min(1.00004 ** ns.getServerMaxRam('home'), 1.5).toString(), 
+      '50'
+    )
+    await ns.sleep(50)
+  }
+
+  log(ns, 'Initiated ' + ns.getRunningScript()?.filename)
+}
+async function operating(ns: NS) {
+
 
       await upg_home(ns)
       await buy_servers(ns)
@@ -59,8 +97,6 @@ export async function main(ns: NS) {
       // await install_augs(ns)
       // await run_stocks(ns)
     }
-  }
-}
 
 async function upg_home(ns: NS) {
   await xrun(ns, 'simple/upg_home_cores.js', 1)
@@ -237,6 +273,7 @@ async function update_batchers(ns: NS) {
 }
 
 async function xrun(ns: NS, filename: string, threads = 1, ...aargs: string[]) {
+  log(ns, 'Running ' + filename + ' with threads: ' + threads)
   let host_name = ns.getHostname()
   if (ns.getServerMaxRam(host_name) - ns.getServerUsedRam(host_name) < ns.getScriptRam(filename) * threads) {
     log(ns, host_name + ': ' + filename + ' was not able to run due to lack of RAM')

@@ -11,10 +11,7 @@ export async function main(ns: NS) {
   }
 }
 
-/**
- */
 export function execute(ns: NS) {
-  /** @type {string[]} */
   let servers = root_servers(ns)
   let filterByMinSecurity = ns.args[0]
 
@@ -41,7 +38,6 @@ export function execute(ns: NS) {
   return return_servers
 }
 
-/** @param {NS} ns */
 function scoreTarget(ns: NS, target: string) {
   let score = ns.getServerMaxMoney(target) || 1
   score /= ns.getServerMinSecurityLevel(target) || 1

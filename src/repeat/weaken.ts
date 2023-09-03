@@ -1,7 +1,8 @@
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
-  let target = ns.args[0].toString()
+  let target: string = ns.args[0].toString()
+  if (!target) throw new Error('No target provided')
   ns.print(ns.args)
   while (true) await ns.weaken(target)
 }

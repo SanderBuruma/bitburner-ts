@@ -1,50 +1,19 @@
-import { CrimeType, NS } from '@ns'
+import { NS } from '@ns'
 
 export async function main(ns: NS) {
-  let a = ns.args[0]?.toString() ?? 'Rob Store'
-  let crime: CrimeType
-  switch (a) {
-    case CrimeType.robStore:
-      crime = CrimeType.robStore;
-      break;
-    case CrimeType.bondForgery:
-      crime = CrimeType.bondForgery;
-      break;
-    case CrimeType.dealDrugs:
-      crime = CrimeType.dealDrugs;
-      break;
-    case CrimeType.heist:
-      crime = CrimeType.heist;
-      break;
-    case CrimeType.grandTheftAuto:
-      crime = CrimeType.grandTheftAuto;
-      break;
-    case CrimeType.assassination:
-      crime = CrimeType.assassination;
-      break;
-    case CrimeType.homicide:
-      crime = CrimeType.homicide;
-      break;
-    case CrimeType.kidnap:
-      crime = CrimeType.kidnap;
-      break;
-    case CrimeType.larceny:
-      crime = CrimeType.larceny;
-      break;
-    case CrimeType.mug:
-      crime = CrimeType.mug;
-      break;
-    case CrimeType.shoplift:
-      crime = CrimeType.shoplift;
-      break;
-    case CrimeType.traffickArms:
-      crime = CrimeType.traffickArms;
-      break;
-    default:
-      crime = CrimeType.robStore;
-      break;
-  }
+  let a: string = ns.args[0]?.toString()
 
-  ns.tprint({crime})
-  return ns.singularity.commitCrime(crime, false)
+  if (a === "Rob Store") return ns.singularity.commitCrime("Rob Store", false)
+  if (a === "Shoplift") return ns.singularity.commitCrime("Shoplift", false)
+  if (a === "Bond Forgery") return ns.singularity.commitCrime("Bond Forgery", false)
+  if (a === "Homicide") return ns.singularity.commitCrime("Homicide", false)
+  if (a === "Mug") return ns.singularity.commitCrime("Mug", false)
+  if (a === "Larceny") return ns.singularity.commitCrime("Larceny", false)
+  if (a === "Deal Drugs") return ns.singularity.commitCrime("Deal Drugs", false)
+  if (a === "Traffick Arms") return ns.singularity.commitCrime("Traffick Arms", false)
+  if (a === "Grand Theft Auto") return ns.singularity.commitCrime("Grand Theft Auto", false)
+  if (a === "Kidnap") return ns.singularity.commitCrime("Kidnap", false)
+  if (a === "Assassination") return ns.singularity.commitCrime("Assassination", false)
+  if (a === "Heist") return ns.singularity.commitCrime("Heist", false)
+  throw new Error('Crime \'' + a + '\' is not an available crime')
 }

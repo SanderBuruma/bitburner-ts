@@ -10,7 +10,7 @@ export async function main(ns: NS) {
   let httpExists = ns.fileExists('HTTPWorm.exe', 'home')
   let sqlExists = ns.fileExists('SQLInject.exe', 'home')
 
-  let maxPorts = [bruteExists, relayExists,  sqlExists, httpExists, ftpExists].reduce((a,c)=> c ? a + 1 : a, 0)
+  let maxPorts = ports_we_can_hack(ns)
   allServers.forEach(s=>{
     if (ns.getServerNumPortsRequired(s) <= maxPorts) {
       if (bruteExists) ns.brutessh(s)
@@ -22,4 +22,10 @@ export async function main(ns: NS) {
       ns.tprintf(s + ' has been nuked')
     }
   })
+}
+
+export function ports_we_can_hack(ns: NS) {
+  return ['BruteSSH.exe', 'FTPCrack.exe', 'relaySMTP.exe', 'HTTPWorm.exe', 'SQLInject.exe'].reduce((a,f)=>{
+    return ns.fileExists(f) ? a + 1 : a
+  }, 0)
 }
