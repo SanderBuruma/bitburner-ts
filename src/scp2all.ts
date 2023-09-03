@@ -9,7 +9,7 @@ export async function main(ns: NS) {
 
     if (s === 'home') continue
 
-    let scripts = ns.ls('home').filter(s=>s.slice(-3) == ".js")
+    let scripts = ns.ls('home').filter(s=>s.slice(-3) == ".js" && s.includes('batch/') || s.includes('repeat/'))
     ns.scp(scripts, s, 'home')
 
   }

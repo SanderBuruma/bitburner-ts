@@ -1,8 +1,8 @@
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
-  let f = ns.args[0] || 'servers'
-  let target: string = ns.args[1].toString() || 'n00dles'
+  let f: string = ns.args[0].toString() || 'servers'
+  let target: string = ns.args[1]?.toString() || 'n00dles'
 
   if (f == 'servers') {
     ns.tprint('all servers')
@@ -32,6 +32,11 @@ export async function main(ns: NS) {
     await target_analyze(ns, target)
   } else if (f == 'net_worth') {
     ns.tprintf("net_worth: "+net_worth(ns))
+  } else if (f == 'gthreads') {
+    let result =  hack_grow_weaken_ratios(ns)
+    ns.tprint(JSON.stringify(result, null, 2))
+  } else {
+    throw new Error('Variable f doesn\'t call for a valid value')
   }
 }
 
@@ -51,6 +56,18 @@ export function scan_all(ns: NS) {
   //all_servers.shift()
   all_servers.sort((a,b)=>ns.getServerMaxRam(b) - ns.getServerMaxRam(a))
   return all_servers
+}
+
+export function hack_grow_weaken_ratios(ns: NS) {
+  let target = ns.args[1]?.toString()
+  if (!target) throw new Error('No target selected')
+  let multiplier = 1.25
+  let grow_threads = ns.growthAnalyze(target, multiplier)
+  let fraction = 1-1/multiplier
+  let hack_threads = ns.hackAnalyzeThreads(target, ns.getServerMaxMoney(target) * fraction)
+  let grow_threads_per_hack_thread = grow_threads / hack_threads / .25 * .8
+  let weaken_threads_per_hack_plus_grow_threads = ns.formatNumber(grow_threads_per_hack_thread/10 + 4/25)
+  return {grow_threads, hack_threads, multiplier, fraction, grow_threads_per_hack_thread, weaken_threads_per_hack_plus_grow_threads}
 }
 
 export function root_servers(ns: NS) {
@@ -129,11 +146,6 @@ export function target_analyze(ns: NS, target: string) {
 
 let print_to_terminal = true
 let print_to_file = true
-/** 
- * @param {boolean} ptt print to terminal
- * @param {boolean} ptf print to file
- * @param {boolean} default_log whether to keep the default log notifications or not
- */
 export function set_log_settings(ns: NS, ptt=true, ptf=true, default_log=false) {
   print_to_terminal = ptt
   print_to_file = ptf
