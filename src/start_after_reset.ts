@@ -1,10 +1,11 @@
 import { NS, ProcessInfo } from '@ns'
-import { root_servers, available_ram, scan_all, max_ram, run_script, kill_previous, log, set_log_settings } from 'utils.js'
+import { root_servers, available_ram, scan_all, total_max_ram, run_script, kill_previous, log, set_log_settings } from 'utils.js'
 import { execute as list_money_targets} from 'list_money_targets.js'
 import { ports_we_can_hack } from './hackall'
 
 let last_home_ram
 let runmode = "InitBitNode"
+let script_pids: number[] = []
 
 export async function main(ns: NS) {
 
@@ -21,7 +22,7 @@ export async function main(ns: NS) {
   // The loop might at some point break from within
   while (true) {
     await ns.sleep(1e3)
-    log(ns, "Running sar loop: runmode "+ runmode)
+    log(ns, "Running SAR loop: runmode "+ runmode)
 
     // Detect runmode
     switch (runmode) {
@@ -43,6 +44,7 @@ export async function main(ns: NS) {
 async function initBitNode(ns: NS) {
   if (ns.getServerMaxRam('home') >= 64) {
     runmode = "InitAfterReset"
+    log(ns, 'Skipping initBitNode')
     return
   }
 
@@ -232,7 +234,7 @@ async function update_batchers(ns: NS) {
   if (targets.length == 0) return
   targets = targets.filter(s=>s.name != 'n00dles')
   
-  // Get a target which doesn't too long to exploit
+  // Get a target which doesn't take too long to exploit
   let target
   while (targets.length > 0) {
     target = targets.shift()
@@ -275,17 +277,28 @@ async function update_batchers(ns: NS) {
 async function xrun(ns: NS, filename: string, threads = 1, ...aargs: string[]) {
   log(ns, 'Running ' + filename + ' with threads: ' + threads)
   let host_name = ns.getHostname()
+  let pid: number = 0
   if (ns.getServerMaxRam(host_name) - ns.getServerUsedRam(host_name) < ns.getScriptRam(filename) * threads) {
     log(ns, host_name + ': ' + filename + ' was not able to run due to lack of RAM')
-    run_script(ns, filename, threads, ...aargs)
+    pid = run_script(ns, filename, threads, ...aargs)
     await ns.sleep(50)
+    return pid
   }
 
-  if (!ns.run(filename, threads, ...aargs)) {
+  pid = ns.run(filename, threads, ...aargs)
+  if (!pid) {
     log(ns, host_name + ': ' + filename + ' was not able to run due to unknown reason')
-    run_script(ns, filename, threads, ...aargs)
+    pid = run_script(ns, filename, threads, ...aargs)
     await ns.sleep(50)
-    return false
+    return pid
   }
-  return true
+  return 0
+}
+
+function kill_script_pids(ns: NS) {
+  while (script_pids.length>0) {
+    let pid = script_pids.shift()
+    if (pid === undefined) continue
+    ns.kill(pid)
+  }
 }

@@ -18,12 +18,6 @@ export async function main(ns: NS) {
       ns.tprint({name: s.server, availableRam: s.availableRam, maxRam: s.maxRam})
     }
 
-  } else if (f == 'hgt_times') {
-    ns.tprint("hgw_times")
-    ns.tprint(hgw_times(ns, target))
-  } else if (f == 'hg_threads') {
-    ns.tprint("hg_threads")
-    ns.tprint(hg_threads(ns, target))
   } else if (f == 'available_ram') {
     ns.tprint("available_ram")
     ns.tprint(ns.formatRam(available_ram(ns)))
@@ -33,7 +27,7 @@ export async function main(ns: NS) {
   } else if (f == 'net_worth') {
     ns.tprintf("net_worth: "+net_worth(ns))
   } else if (f == 'gthreads') {
-    let result =  hack_grow_weaken_ratios(ns)
+    let result =  hack_grow_weaken_ratios(ns, ns.args[1]?.toString())
     ns.tprint(JSON.stringify(result, null, 2))
   } else {
     throw new Error('Variable f doesn\'t call for a valid value')
@@ -58,16 +52,16 @@ export function scan_all(ns: NS) {
   return all_servers
 }
 
-export function hack_grow_weaken_ratios(ns: NS) {
-  let target = ns.args[1]?.toString()
+/** @description calculates how many continuous grow and hack threads need to run to counter 1 hack thread */
+export function hack_grow_weaken_ratios(ns: NS, target: string = 'foodnstuff') {
   if (!target) throw new Error('No target selected')
   let multiplier = 1.25
   let grow_threads = ns.growthAnalyze(target, multiplier)
   let fraction = 1-1/multiplier
   let hack_threads = ns.hackAnalyzeThreads(target, ns.getServerMaxMoney(target) * fraction)
   let grow_threads_per_hack_thread = grow_threads / hack_threads / .25 * .8
-  let weaken_threads_per_hack_plus_grow_threads = ns.formatNumber(grow_threads_per_hack_thread/10 + 4/25)
-  return {grow_threads, hack_threads, multiplier, fraction, grow_threads_per_hack_thread, weaken_threads_per_hack_plus_grow_threads}
+  let weaken_threads_plus_grow_threads_per_hack = ns.formatNumber(grow_threads_per_hack_thread/10 + 4/25)
+  return {target, grow_threads, hack_threads, multiplier, fraction, grow_threads_per_hack_thread, weaken_threads_plus_grow_threads_per_hack}
 }
 
 export function root_servers(ns: NS) {
@@ -79,32 +73,14 @@ export function nonroot_servers(ns: NS) {
   return scan_all(ns).filter(s=>!ns.hasRootAccess(s))
 }
 
-export function servers_with_ram(ns: NS) {
+export function servers_with_ram(ns: NS, treshold = 16) {
   return root_servers(ns)
-  .filter(s=>ns.getServerMaxRam(s) - ns.getServerUsedRam(s) > 16)
+  .filter(s=>ns.getServerMaxRam(s) - ns.getServerUsedRam(s) > treshold)
   .sort((a,b)=>ns.getServerMaxRam(b) - ns.getServerMaxRam(a))
 }
 
-export function hgw_times(ns: NS, target: string) {
-  let hack_time = ns.getHackTime(target)
-  let grow_time = ns.getGrowTime(target)
-  let weaken_time = ns.getWeakenTime(target)
-  return [hack_time, grow_time, weaken_time]
-}
-
-/** @description gives the number of hack and grow threads to keep target at parity
- * @return {[number, number]} */
-export function hg_threads(ns: NS, target: string) {
-
-  let hack_threads = ns.hackAnalyzeThreads(target, ns.getServerMoneyAvailable(target) / 2)
-  let grow_threads = ns.growthAnalyze(target, 2)
-
-  return [hack_threads, grow_threads]
-
-}
-
 /** @description returns the total ram available on all purchased servers */
-export function max_ram(ns: NS, all = false) {
+export function total_max_ram(ns: NS, all = false) {
   let servers = purchased_and_homeserver(ns, true, true)
   let serversTotalRam = (servers.reduce((a,c)=>{
     return a + ns.getServerMaxRam(c) - ns.getServerMaxRam(c)
@@ -135,6 +111,7 @@ export function purchased_and_homeserver(ns: NS, withHome=true, allroot=true) {
   return servers
 }
 
+/** @description gives weaken time, max and current money, minsec, sec, hack req */
 export function target_analyze(ns: NS, target: string) {
   ns.tprint('Target wTime: \t ' + ns.formatNumber(ns.getWeakenTime(target)))
   ns.tprint('Target max money:\t ' + ns.formatNumber(ns.getServerMaxMoney(target)))
@@ -146,6 +123,7 @@ export function target_analyze(ns: NS, target: string) {
 
 let print_to_terminal = true
 let print_to_file = true
+/** @description sets the default setting for logging for the running script */
 export function set_log_settings(ns: NS, ptt=true, ptf=true, default_log=false) {
   print_to_terminal = ptt
   print_to_file = ptf
@@ -181,18 +159,20 @@ export function net_worth(ns: NS) {
 export function run_script(ns: NS, scriptName: string, threads: number, ...aargs: string[]) {
   let servers = root_servers(ns)
   for (let s of servers) {
+    let pid
     let availableRam = ns.getServerMaxRam(s) - ns.getServerUsedRam(s)
     if (availableRam > threads * ns.getScriptRam(scriptName)) {
-      if (!ns.exec(scriptName, s, threads, ...aargs)) 
+      pid = ns.exec(scriptName, s, threads, ...aargs)
+      if (!pid) 
       { 
         ns.print({msg: "Failed execution; no individual server has enough ram", scriptName, threads, host:ns.getHostname(), aargs})
         throw new Error('Failed execution, See log')
       }
-      return true
+      return pid
     }
   }
   ns.print({msg: "Not enough ram", scriptName, threads, aargs, host:ns.getHostname()})
-    throw new Error('Not enough RAM, See log')
+  return 0
 }
 
 
