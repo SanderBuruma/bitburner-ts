@@ -1,4 +1,4 @@
-import { nonroot_servers } from 'utils.js'
+import { nonroot_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {

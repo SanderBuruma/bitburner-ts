@@ -1,4 +1,4 @@
-import { scan_all } from 'utils.js'
+import { scan_all } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {

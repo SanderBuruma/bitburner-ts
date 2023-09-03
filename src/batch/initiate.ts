@@ -1,4 +1,4 @@
-import { root_servers, available_ram } from 'utils.js'
+import { root_servers, available_ram } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 let exploitTiming: number

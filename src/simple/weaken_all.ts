@@ -1,4 +1,4 @@
-import { root_servers, servers_with_ram } from 'utils.js'
+import { root_servers, servers_with_ram } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {

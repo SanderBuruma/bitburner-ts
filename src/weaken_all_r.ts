@@ -1,4 +1,4 @@
-import { root_servers } from 'utils.js'
+import { root_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 /** @description use all servers for weaken repeats*/

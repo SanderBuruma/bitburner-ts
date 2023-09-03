@@ -1,4 +1,4 @@
-import { log } from 'utils.js'
+import { log } from 'helpers/utils.js'
 import { NS } from '@ns'
 
 let symbols: string[]

@@ -1,7 +1,8 @@
 import { NS, ProcessInfo } from '@ns'
-import { root_servers, available_ram, scan_all, total_max_ram, run_script, kill_previous, log, set_log_settings } from 'utils.js'
+import { kill_previous, log, set_log_settings } from 'helpers/utils.js'
 import { execute as list_money_targets} from 'list_money_targets.js'
 import { ports_we_can_hack } from './hackall'
+import { available_ram, root_servers, run_script, scan_all } from './helpers/servers'
 
 let last_home_ram
 let runmode = "InitBitNode"

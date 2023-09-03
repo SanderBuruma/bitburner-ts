@@ -1,5 +1,5 @@
 import { NS } from '@ns'
-import { log } from '/utils'
+import { log } from 'helpers/utils'
 
 export async function main(ns: NS) {
   let cost = ns.singularity.getUpgradeHomeCoresCost()

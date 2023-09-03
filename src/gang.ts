@@ -1,4 +1,4 @@
-import { log, kill_previous } from 'utils.js'
+import { log, kill_previous } from 'helpers/utils.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {

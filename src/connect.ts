@@ -1,4 +1,4 @@
-import { log } from 'utils.js'
+import { log } from 'helpers/utils.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
