@@ -2,7 +2,7 @@ import { rooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
-  let servers = execute(ns)
+  let servers = lmt(ns)
   ns.tprint({servers})
 
   for (let s of servers) {
@@ -11,7 +11,7 @@ export async function main(ns: NS) {
   }
 }
 
-export function execute(ns: NS) {
+export function lmt(ns: NS) {
   let servers = rooted_servers(ns)
   let filterByMinSecurity = ns.args[0]
 

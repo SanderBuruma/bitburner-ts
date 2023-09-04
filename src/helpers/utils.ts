@@ -25,7 +25,7 @@ export function hack_grow_weaken_ratios(ns: NS, target: string = 'foodnstuff') {
   let fraction = 1-1/multiplier
   let hack_threads = ns.hackAnalyzeThreads(target, ns.getServerMaxMoney(target) * fraction)
   let grow_threads_per_hack_thread = grow_threads / hack_threads / .25 * .8
-  let weaken_threads_plus_grow_threads_per_hack = ns.formatNumber(grow_threads_per_hack_thread/10 + 4/25)
+  let weaken_threads_plus_grow_threads_per_hack = grow_threads_per_hack_thread/10 + 4/25
   return {target, grow_threads, hack_threads, multiplier, fraction, grow_threads_per_hack_thread, weaken_threads_plus_grow_threads_per_hack}
 }
 
@@ -33,7 +33,7 @@ export function hack_grow_weaken_ratios(ns: NS, target: string = 'foodnstuff') {
 
 /** @description gives weaken time, max and current money, minsec, sec, hack req */
 export function target_analyze(ns: NS, target: string) {
-  ns.tprint('Target wTime: \t ' + ns.formatNumber(ns.getWeakenTime(target)))
+  ns.tprint('Target wTime: \t ' + ns.formatNumber(ns.getWeakenTime(target)/1e3))
   ns.tprint('Target max money:\t ' + ns.formatNumber(ns.getServerMaxMoney(target)))
   ns.tprint('Target cur money:\t ' + ns.formatNumber(ns.getServerMoneyAvailable(target)))
   ns.tprint('Target minsec:\t ' + ns.getServerMinSecurityLevel(target))

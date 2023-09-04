@@ -23,8 +23,8 @@ export function scan_all(ns: NS) {
 }
 
 
-export function rooted_servers(ns: NS) {
-  return scan_all(ns).filter(s=>ns.hasRootAccess(s))
+export function rooted_servers(ns: NS, with_home = false) {
+  return scan_all(ns).filter(s=>ns.hasRootAccess(s)).filter(x=>with_home || x!='home')
   .sort((a,b)=>ns.getServerMaxRam(b)-ns.getServerMaxRam(a))
 }
 
@@ -61,8 +61,8 @@ export function purchased_and_homeserver(ns: NS, withHome=true, allroot=true) {
 }
 
 /** @description returns the total ram available on all purchased servers */
-export function available_ram(ns: NS, minimum_ram = 8) {
-  let servers = purchased_and_homeserver(ns, true, true)
+export function available_ram(ns: NS, minimum_ram = 8, with_home = false) {
+  let servers = purchased_and_homeserver(ns, with_home, true)
   let serversTotalRam = (servers.reduce((a,s)=>{
     let available_ram = ns.getServerMaxRam(s) - ns.getServerUsedRam(s)
     return available_ram >= minimum_ram ? a + available_ram : a
@@ -88,4 +88,8 @@ export function run_script(ns: NS, scriptName: string, threads: number, ...aargs
   }
   ns.print({msg: "Not enough ram", scriptName, threads, aargs, host:ns.getHostname()})
   return 0
+}
+
+export function get_server_available_ram(ns: NS, target: string) {
+  return ns.getServerMaxRam(target) - ns.getServerUsedRam(target)
 }

@@ -1,8 +1,8 @@
 import { NS, ProcessInfo } from '@ns'
-import { kill_previous, log, set_log_settings } from 'helpers/utils.js'
-import { execute as list_money_targets} from 'list_money_targets.js'
+import { hack_grow_weaken_ratios, kill_previous, log, set_log_settings } from 'helpers/utils.js'
+import { lmt } from 'list_money_targets.js'
 import { ports_we_can_hack } from './hackall'
-import { available_ram, rooted_servers, run_script, scan_all } from './helpers/servers'
+import { available_ram, get_server_available_ram, rooted_servers, run_script, scan_all } from './helpers/servers'
 
 let last_home_ram
 let runmode = "InitBitNode"
@@ -53,10 +53,11 @@ async function initBitNode(ns: NS) {
   await ns.sleep(50)
   await xrun(ns, 'simple/commit_crime.js', 1, 'Rob Store')
   await ns.sleep(50)
-  let hack_repeat_pid = ns.run('repeat/hack.js', Math.floor((ns.getServerMaxRam('home') - ns.getServerUsedRam('home')) / 1.7), 'foodnstuff')
+  // start hacking the best money target
+  log(ns, 'Initiating hgw_continuous_best_target')
+  await hgw_continuous_best_target(ns)
   log(ns, 'Waiting to upgrade home RAM')
   while (ns.getPlayer().money < ns.singularity.getUpgradeHomeRamCost()) await ns.sleep(50)
-  ns.kill(hack_repeat_pid)
   await ns.sleep(50)
   await xrun(ns, 'simple/upg_home_ram.js', 1)
   await ns.sleep(50)
@@ -231,7 +232,7 @@ async function update_batchers(ns: NS) {
   /** @type string[] */
   let targets
   if (servers.length < 3) return
-  targets = list_money_targets(ns)
+  targets = lmt(ns)
   
   if (targets.length == 0) return
   targets = targets.filter(s=>s.name != 'n00dles')
@@ -280,7 +281,7 @@ async function xrun(ns: NS, filename: string, threads = 1, ...aargs: string[]) {
   log(ns, 'Running ' + filename + ' with threads: ' + threads)
   let host_name = ns.getHostname()
   let pid: number = 0
-  if (ns.getServerMaxRam(host_name) - ns.getServerUsedRam(host_name) < ns.getScriptRam(filename) * threads) {
+  if (get_server_available_ram(ns, host_name) < ns.getScriptRam(filename) * threads) {
     log(ns, host_name + ': ' + filename + ' was not able to run due to lack of RAM')
     pid = run_script(ns, filename, threads, ...aargs)
     await ns.sleep(50)
@@ -302,5 +303,116 @@ function kill_script_pids(ns: NS) {
     let pid = script_pids.shift()
     if (pid === undefined) continue
     ns.kill(pid)
+  }
+}
+
+async function hgw_continuous_best_target(ns: NS) {
+  // Gather some necesssary information
+  let targets = lmt(ns)
+  ns.tprint(targets)
+  let target = targets.shift()?.name ?? 'foodnstuff'
+  let a_ram = available_ram(ns, 2, false)
+  let hgw_rs = hack_grow_weaken_ratios(ns, target)
+  let sum_threads_per_1_hack = hgw_rs.grow_threads_per_hack_thread + hgw_rs.weaken_threads_plus_grow_threads_per_hack + 1
+
+  // Check if we should start a new cycle
+  if (sum_threads_per_1_hack * 1.8 > a_ram) {
+    log(ns, 'sum_threads: ' + ns.formatNumber(sum_threads_per_1_hack * 1.8, 2) + ' * 1.8 is too much RAM for a_ram: ' + ns.formatRam(a_ram))
+    return
+  }
+
+  // Kill the old continuous cycle
+  let y = rooted_servers(ns).reduce((a: number[],c)=>{
+    return a.concat(
+      ns.ps(c)
+      .filter(x=>/^repeat\//.test(x.filename))
+      .map(x=>x.pid)
+    )
+  },[]).forEach(x=>{
+    ns.kill(x)
+  })
+  await ns.sleep(100)
+
+  // Start the new continuous cycle
+  a_ram = available_ram(ns, 2, false) 
+  let hgw_rs_multiple = Math.floor(a_ram / sum_threads_per_1_hack / 1.8)
+  let hack_threads = Math.max(Math.floor(hgw_rs_multiple), 1)
+  let grow_threads = Math.max(Math.ceil(hgw_rs_multiple * hgw_rs.grow_threads_per_hack_thread), 1)
+  let weaken_threads = Math.max(Math.ceil(hgw_rs_multiple * hgw_rs.weaken_threads_plus_grow_threads_per_hack), 1)
+  ns.tprint(JSON.stringify({target, hgw_rs, a_ram, hgw_rs_multiple, hack_threads, grow_threads, weaken_threads, sum_threads_per_1_hack}, null, 2))
+  for (let s of rooted_servers(ns, false)) {
+    let ram = get_server_available_ram(ns, s)
+    let hack_script_ram = ns.getScriptRam('repeat/hack.js')
+    let grow_script_ram = ns.getScriptRam('repeat/grow.js')
+    let weaken_script_ram = ns.getScriptRam('repeat/weaken.js')
+
+    // Initiate repeat/weaken.js scripts
+    if (weaken_threads >= 1 && weaken_threads * weaken_script_ram > ram) {
+      ns.exec(
+        'repeat/weaken.js', 
+        s, 
+        Math.floor(ram / weaken_script_ram), 
+        target
+      )
+      weaken_threads -= Math.floor(ram / weaken_script_ram)
+      continue
+    } else if (weaken_threads >= 1) {
+      ns.exec(
+        'repeat/weaken.js', 
+        s, 
+        weaken_threads, 
+        target
+      )
+      weaken_threads = 0
+    }
+    
+    await ns.sleep(50)
+    ram = get_server_available_ram(ns, s)
+    if (ram < grow_script_ram) continue
+
+    // Initiate repeat/grow.js scripts
+    if (grow_threads >= 1 && grow_threads * grow_script_ram > ram) {
+      ns.exec(
+        'repeat/grow.js', 
+        s, 
+        Math.floor(ram / grow_script_ram), 
+        target
+      )
+      grow_threads -= Math.floor(ram / grow_script_ram)
+      continue
+    } else if (grow_threads >= 1) {
+      ns.exec(
+        'repeat/grow.js', 
+        s, 
+        grow_threads, 
+        target
+      )
+      grow_threads = 0
+    }
+    
+    await ns.sleep(50)
+    ram = get_server_available_ram(ns, s)
+    if (ram < weaken_script_ram) continue
+    
+    // Initiate repeat/hack.js scripts
+    if (hack_threads >= 1 && hack_threads * hack_script_ram > ram) {
+      ns.exec(
+        'repeat/hack.js', 
+        s, 
+        Math.floor(ram / hack_script_ram), 
+        target
+      )
+      hack_threads -= Math.floor(ram / hack_script_ram)
+      continue
+    } else if (hack_threads >= 1) {
+      ns.exec(
+        'repeat/hack.js', 
+        s, 
+        hack_threads, 
+        target
+      )
+      hack_threads = 0
+    }
+    
   }
 }

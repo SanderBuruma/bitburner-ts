@@ -1,4 +1,4 @@
-import { rooted_servers, servers_with_ram } from 'helpers/servers.js'
+import { get_server_available_ram, rooted_servers, servers_with_ram } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
@@ -15,7 +15,7 @@ export async function main(ns: NS) {
 
     let servers_w_ram = servers_with_ram(ns)
     for (let s2 of servers_w_ram) {
-      let threads = Math.floor((ns.getServerMaxRam(s2) - ns.getServerUsedRam(s2)) / 2)
+      let threads = Math.floor((get_server_available_ram(ns, s2)) / 2)
       if (threads > 0) {
         if (weakensNeeded < threads) {
           ns.exec('weaken.js', s2, weakensNeeded, s)

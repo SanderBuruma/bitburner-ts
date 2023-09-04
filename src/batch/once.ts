@@ -1,4 +1,4 @@
-import { rooted_servers } from 'helpers/servers.js'
+import { get_server_available_ram, rooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
@@ -58,10 +58,8 @@ export async function main(ns: NS) {
 function runScript(ns: NS, target: string, scriptName: string, threads: number) {
   let servers = rooted_servers(ns)
   for (let s of servers) {
-    let availableRam = ns.getServerMaxRam(s) - ns.getServerUsedRam(s)
-    //ns.print({msg:"Check", availableRam, threadsRam: threads * ns.getScriptRam(scriptName), scriptName, threads, target, host:ns.getHostname()})
+    let availableRam = get_server_available_ram(ns, s)
     if (availableRam > threads * ns.getScriptRam(scriptName)) {
-      // ns.tprintf({exec:"runscript", server: s, target, scriptName, threads, availableRam})
       
       if (!ns.exec(scriptName, s, threads, target)) 
       { 

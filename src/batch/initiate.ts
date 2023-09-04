@@ -1,4 +1,4 @@
-import { rooted_servers, available_ram } from 'helpers/servers.js'
+import { rooted_servers, available_ram, get_server_available_ram } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 let exploitTiming: number
@@ -70,7 +70,7 @@ export async function main(ns: NS) {
       for (let s of own_servers) {
         let threads = Math.floor(
           (
-            ns.getServerMaxRam(s) - ns.getServerUsedRam(s)
+            get_server_available_ram(ns, s)
           ) / ns.getScriptRam('simple/weaken.js')
         )
         if (threads < 1) continue
@@ -112,7 +112,7 @@ export async function main(ns: NS) {
       for (let s of own_servers) {
         let threads = Math.floor(
           (
-            ns.getServerMaxRam(s) - ns.getServerUsedRam(s)
+            get_server_available_ram(ns, s)
           ) / ns.getScriptRam('simple/grow.js')
         )
         if (threads < 1) {
@@ -140,8 +140,8 @@ export async function main(ns: NS) {
       if (threadsCount == 0) {
         let weakenThreads = Math.ceil(Math.max(maxThreads / 12.5))
         let servers = rooted_servers(ns).sort((a, b) => {
-          return (ns.getServerMaxRam(b) - ns.getServerUsedRam(b)) -
-            (ns.getServerMaxRam(a) - ns.getServerUsedRam(a))
+          return (get_server_available_ram(ns, b)) -
+            (get_server_available_ram(ns, a))
         })
         ns.exec('simple/weaken.js', servers[0], weakenThreads, target)
         sleep_time = Math.ceil(((ns.getWeakenTime(target) + 500) || 1000) / 1000)
