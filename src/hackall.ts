@@ -3,7 +3,6 @@ import { NS } from '@ns'
 
 export async function main(ns: NS) {
 
-  let allServers = nonrooted_servers(ns)
   let bruteExists = ns.fileExists('BruteSSH.exe', 'home')
   let ftpExists = ns.fileExists('FTPCrack.exe', 'home')
   let relayExists = ns.fileExists('relaySMTP.exe', 'home')
@@ -11,6 +10,7 @@ export async function main(ns: NS) {
   let sqlExists = ns.fileExists('SQLInject.exe', 'home')
 
   let maxPorts = ports_we_can_hack(ns)
+  let allServers = nonrooted_servers(ns).filter(x=>ns.getServerNumPortsRequired(x)<=maxPorts)
   let nuked_something = false
   allServers.forEach(s=>{
     if (ns.getServerNumPortsRequired(s) <= maxPorts) {
@@ -30,6 +30,7 @@ export async function main(ns: NS) {
   }
 }
 
+/** @return the number of ports we can hack */
 export function ports_we_can_hack(ns: NS) {
   return ['BruteSSH.exe', 'FTPCrack.exe', 'relaySMTP.exe', 'HTTPWorm.exe', 'SQLInject.exe'].reduce((a,f)=>{
     return ns.fileExists(f) ? a + 1 : a
