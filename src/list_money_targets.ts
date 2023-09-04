@@ -2,13 +2,19 @@ import { rooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
-  let servers = lmt(ns)
-  ns.tprint({servers})
+  let method = ns.args[0]?.toString() ?? 'lmt'
 
-  for (let s of servers) {
-    let paddedServerName = s.name.padEnd(16, ' ');
-    ns.tprint('server:' + paddedServerName + 'score: ' + s.score + '\thackReq:' + s.hackingLv);
+  if (method === 'lmt') {
+    let servers = lmt(ns)
+    for (let s of servers) {
+      let paddedServerName = s.name.padEnd(16, ' ');
+      ns.tprint('server:' + paddedServerName + 'score: ' + s.score + '\thackReq:' + s.hackingLv);
+    }
+  } else if (method === 'summarize_repeat') {
+    let result = summarize_repeat_scripts(ns)
+    result.forEach(x=>ns.tprintf('name:' + x.name_args.padStart(20, ' -') + ' threads: ' + x.threads))
   }
+
 }
 
 export function lmt(ns: NS) {
@@ -43,4 +49,28 @@ function scoreTarget(ns: NS, target: string) {
   score /= ns.getServerMinSecurityLevel(target) || 1
   score /= Math.max(1, ns.growthAnalyze(target, 2) / 10000)
   return score/100_000
+}
+
+function summarize_repeat_scripts(ns: NS) {
+  let repeat_scripts = rooted_servers(ns, true)
+  .map(server=>ns.ps(server))
+  .reduce((a,c)=>a.concat(c), [])
+  .filter(script=>script.filename.includes('repeat/'))
+
+  let targets_plus_args = repeat_scripts.map(script=>{
+    return {
+      name_args: script.filename + " " + script.args.join(', '),
+      threads: script.threads
+    }
+  })
+  let ar: {name_args: string, threads: number}[] = []
+  for (let tpa of targets_plus_args) {
+    if (ar.filter(x=>x.name_args == tpa.name_args).length>0) {
+      let index = ar.findIndex(x=>x.name_args === tpa.name_args)
+      ar[index].threads += tpa.threads
+    } else {
+      ar.push(tpa)
+    }
+  }
+  return ar
 }

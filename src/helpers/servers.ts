@@ -17,8 +17,7 @@ export function scan_all(ns: NS) {
     }
     i++
   }
-  //all_servers.shift()
-  all_servers.sort((a,b)=>ns.getServerMaxRam(b) - ns.getServerMaxRam(a))
+  all_servers.sort((a,b)=>get_server_available_ram(ns, b)-get_server_available_ram(ns, a))
   return all_servers
 }
 
