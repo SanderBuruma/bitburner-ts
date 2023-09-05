@@ -88,3 +88,21 @@ export function kill_previous(ns: NS) {
   )
   previous.forEach(x=>ns.kill(x.pid))
 }
+
+/** @description writes data to a port matching the pid of the running script */
+export function write_to_port(ns: NS, data: object) {
+  ns.writePort(ns.getRunningScript()?.pid ?? 0, JSON.stringify(data))
+}
+
+/** @description runs a script, reads and returns the data as an object when finished. REQUIRES that data will be written and that the data be an object.
+ * This function WILL freeze its calling script if no data gets written
+ */
+export async function run_write_read(ns: NS, filename: string, threads: number, ...args: any[]) {
+  ns.print(JSON.stringify({method:run_write_read.name, filename, threads, args}, null, 2))
+
+  let pid = ns.run(filename, threads, ...args)
+  let port = ns.getPortHandle(pid)
+  await port.nextWrite()
+  let data = port.read().toString()
+  return JSON.parse(data)
+}

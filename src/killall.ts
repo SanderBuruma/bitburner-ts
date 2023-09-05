@@ -17,7 +17,7 @@ export async function main(ns: NS) {
     for (let scr of scripts) {
       if (scr.pid)
       ns.print({filename:scr.filename, s})
-      ns.kill(scr.pid.toString(), s)
+      ns.kill(scr.pid)
     }
   }
 
@@ -29,6 +29,6 @@ export async function main(ns: NS) {
     if (dont_kill_pids.indexOf(scr.pid) != -1) continue
     
     ns.print(scr.filename + " " + s)
-    ns.kill(scr.pid.toString(), s)
+    ns.kill(scr.pid)
   }
 }

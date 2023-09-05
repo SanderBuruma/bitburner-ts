@@ -1,8 +1,9 @@
 import { NS, ProcessInfo } from '@ns'
-import { hack_grow_weaken_ratios, kill_previous, log, set_log_settings } from 'helpers/utils.js'
+import { hack_grow_weaken_ratios, kill_previous, log, run_write_read, set_log_settings } from 'helpers/utils.js'
 import { lmt } from 'list_money_targets.js'
 import { ports_we_can_hack } from './hackall'
-import { available_ram, get_server_available_ram, nonrooted_servers, rooted_servers, run_script, scan_all } from './helpers/servers'
+import { available_ram, get_server_available_ram, nonrooted_servers, rooted_servers, run_script, total_max_ram } from './helpers/servers'
+import { FactionResult } from './interfaces/FactionResult'
 
 let runmode = initBitNode.name
 let script_pids: number[] = []
@@ -13,7 +14,7 @@ export async function main(ns: NS) {
 
   kill_previous(ns)
   ns.atExit(async ()=>{
-    await xrun(ns, 'killall.js')
+    await ns.run('killall.js')
     log(ns, 'Exiting ' + ns.getRunningScript()?.filename + ' and killing all scripts')
   })
   log(ns, 'Starting ' + ns.getRunningScript()?.filename)
@@ -41,14 +42,14 @@ export async function main(ns: NS) {
 }
 
 async function initBitNode(ns: NS) {
+  await ns.run('hackall.js')
+  await ns.sleep(50)
   if (ns.getServerMaxRam('home') >= 64) {
     runmode = initAfterReset.name
     log(ns, 'exiting ' + initBitNode.name)
     return
   }
 
-  await xrun(ns, 'hackall.js')
-  await ns.sleep(50)
   await commit_rob_store(ns)
   await ns.sleep(50)
   log(ns, 'Initiating hgw_continuous_best_target')
@@ -61,17 +62,35 @@ async function initBitNode(ns: NS) {
     await hgw_continuous_best_target(ns)
   }
   await ns.sleep(50)
-  await xrun(ns, 'simple/upg_home_ram.js', 1)
+  await ns.run('simple/upg_home_ram.js', 1)
   await ns.sleep(50)
-  await xrun(ns, 'killall.js', 1, ns.getRunningScript()?.pid.toString()??'0')
+  await ns.run('killall.js', 1, ns.getRunningScript()?.pid ?? 0)
   await ns.sleep(50)
   runmode = initAfterReset.name
 }
 
 async function initAfterReset(ns: NS) {
-  await upgrade_port_exploits(ns)
-  await commit_rob_store(ns)
-  await hgw_continuous_best_target(ns)
+  while (ns.getServerMaxRam('home') < 256)
+  {
+    if (ns.getPlayer().money > ns.singularity.getUpgradeHomeRamCost()) {
+      await ns.run('simple/upg_home_ram.js', 1)
+      await ns.sleep(50)
+    }
+    await buy_programs(ns)
+    await upgrade_port_exploits(ns)
+    await commit_rob_store(ns)
+    await hgw_continuous_best_target(ns)
+    await backdoor_everything(ns)
+
+    let factions: FactionResult[] = await run_write_read(ns, 'simple/work_with_a_faction.js', 1, 'factions_to_port')
+    let work = ns.singularity.getCurrentWork()
+    if (work && work['type'] !== 'FACTION' && factions.length > 0) {
+      log(ns, 'initiating work with faction:' + factions[0].name)
+      ns.run('simple/work_with_a_faction.js', 1, 'work_with_faction')
+    }
+    await ns.sleep(500)
+  }
+  runmode = operating.name
 }
 
 async function operating(ns: NS) {
@@ -80,18 +99,17 @@ async function operating(ns: NS) {
   await buy_programs(ns)
   await upgrade_port_exploits(ns)
   // await update_hacknet(ns)
-  await backdoor_everything(ns)
   await update_batchers(ns)
-  // await train_with_faction(ns)
+  // await work_with_faction(ns)
   // await buy_augs(ns)
   // await install_augs(ns)
   // await run_stocks(ns)
 }
 
 async function upg_home(ns: NS) {
-  await xrun(ns, 'simple/upg_home_cores.js', 1)
+  await ns.run('simple/upg_home_cores.js', 1)
   await ns.sleep(50)
-  await xrun(ns, 'simple/upg_home_ram.js', 1)
+  await ns.run('simple/upg_home_ram.js', 1)
   await ns.sleep(50)
 }
 
@@ -104,7 +122,7 @@ async function buy_servers(ns: NS) {
     cost = ns.getPurchasedServerCost(ns.getServerMaxRam(servers[0]) * 2)
     if (player.money > cost)
     {
-      await xrun(ns, 'buyserver.js', 1)
+      await ns.run('buyserver.js', 1)
       log(ns, 'Bought a server for ' + ns.formatNumber(cost))
       await ns.sleep(1000)
       return
@@ -113,7 +131,7 @@ async function buy_servers(ns: NS) {
     cost = ns.getPurchasedServerCost(64)
     if (player.money > cost) 
     {
-      await xrun(ns, 'buyserver.js', 1)
+      await ns.run('buyserver.js', 1)
       log(ns, 'Bought a server for ' + ns.formatNumber(cost))
       await ns.sleep(50)
       return
@@ -124,41 +142,41 @@ async function buy_servers(ns: NS) {
 
 async function buy_programs(ns: NS) {
   
-  if (!ns.hasTorRouter && ns.getPlayer().money > 2e5) {
-    await xrun(ns, 'simple/purchase_tor.js')
+  if (!ns.hasTorRouter() && ns.getPlayer().money > 2e5) {
+    ns.run('simple/purchase_tor.js')
+    log(ns, 'Bought TOR Router at seconds since aug: ' + Math.floor(ns.getResetInfo().lastAugReset)/1e3)
     await ns.sleep(50)
   }
   
   let programs = [
     {
       money: 5e5,
-      program: 'DeepscanV1.exe'
-    },
-    {
-      money: 5e5,
       program: 'BruteSSH.exe'
-    },
-    {
+    }, {
       money: 15e5,
       program: 'FTPCrack.exe'
-    },
-    {
+    }, {
+      money: 16e5,
+      program: 'DeepscanV1.exe'
+    }, {
       money: 5e6,
       program: 'relaySMTP.exe'
-    },
-    {
-      money: 30e6,
+    }, {
+      money: 3e7,
       program: 'HTTPWorm.exe'
-    },
-    {
-      money: 25e7,
+    }, {
+      money: 2.5e8,
       program: 'SQLInject.exe'
+    }, {
+      money: 4e10,
+      program: 'Formulas.exe'
     },
   ]
   
   for (let p of programs) {
     if (!ns.fileExists(p.program) && ns.getPlayer().money > p.money) {
       ns.run('simple/purchase_program.js', 1, p.program)
+      log(ns, 'Bought ' + p.program + ' at seconds since aug: ' + Math.floor(ns.getResetInfo().lastAugReset/1e3))
       await ns.sleep(50)
       ns.run('hackall.js', 1)
       await ns.sleep(50)
@@ -172,7 +190,7 @@ async function backdoor_everything(ns: NS) {
   for (let s of servers) {
     let server = ns.getServer(s)
     if (!server.backdoorInstalled && ns.getPlayer().skills.hacking >= (server.requiredHackingSkill ?? 0)) {
-      if (!xrun(ns, 'connect.js', 1, s)) return
+      if (!ns.run('connect.js', 1, s)) return
       await ns.sleep(250)
       await ns.singularity.installBackdoor()
       ns.singularity.connect('home')
@@ -259,7 +277,7 @@ async function update_batchers(ns: NS) {
     time_factor = tf
   }
 
-  await xrun(ns, 'batch/initiate.js', 1, target.name, time_factor.toString(), multiplier.toString(), '100')
+  await ns.run('batch/initiate.js', 1, target.name, time_factor.toString(), multiplier.toString(), '100')
   log(ns, 'Initiating batch on ' + target.name + ' tf: ' + time_factor + ' multi: ' + multiplier)
 }
 
@@ -294,14 +312,15 @@ function kill_script_pids(ns: NS) {
 
 async function hgw_continuous_best_target(ns: NS) {
   // Gather some necesssary information
-  let targets = lmt(ns)
+  let targets = lmt(ns).filter(x=>ns.hackAnalyzeChance(x.name)>.5)
   let target = targets.shift()?.name ?? 'foodnstuff'
   let a_ram = available_ram(ns, 2, false)
+  let max_ram = total_max_ram(ns, false)
   let hgw_rs = hack_grow_weaken_ratios(ns, target)
   let sum_threads_per_1_hack = hgw_rs.grow_threads_per_hack_thread + hgw_rs.weaken_threads_plus_grow_threads_per_hack + 1
 
   // Check if we should start a new cycle
-  if (sum_threads_per_1_hack * 1.8 > a_ram) {
+  if (sum_threads_per_1_hack * 1.8 > a_ram || a_ram * 2 < max_ram) {
     return
   }
 
@@ -403,7 +422,7 @@ async function hgw_continuous_best_target(ns: NS) {
 
 async function upgrade_port_exploits(ns: NS) {
   if (nonrooted_servers(ns).filter(s=>ns.getServerNumPortsRequired(s) < ports_we_can_hack(ns)).length > 0) {
-    await xrun(ns, 'hackall.js')
+    await ns.run('hackall.js')
     await ns.sleep(50)
     await hgw_continuous_best_target(ns)
     await ns.sleep(50)
@@ -411,7 +430,7 @@ async function upgrade_port_exploits(ns: NS) {
 }
 async function commit_rob_store(ns: NS) {
   if (!ns.singularity.getCurrentWork()) {
-    await xrun(ns, 'simple/commit_crime.js', 1, 'Rob Store')
+    await ns.run('simple/commit_crime.js', 1, 'Rob Store')
     await ns.sleep(50)
   }
 }

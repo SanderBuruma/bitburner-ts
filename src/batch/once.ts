@@ -49,9 +49,12 @@ export async function main(ns: NS) {
   // Wait to finish the script
   await ns.sleep(ns.getHackTime(target) - timingLeniency * 1)
   while ((Date.now() - now) < (ns.getWeakenTime(target) + timingLeniency * 3)) await ns.sleep(1)
-  ns.print({msg: ns.getRunningScript()?.filename ?? 'error' + ' completed', dn: Date.now() - now, 
-  weakenMgrow: weakenFinishTime-growFinishTime, 
-  growMhack: growFinishTime-hackFinishTime})
+  ns.print({
+    msg: ns.getRunningScript()?.filename ?? 'error' + ' completed', 
+    dn: Date.now() - now, 
+    weakenMgrow: weakenFinishTime-growFinishTime, 
+    growMhack: growFinishTime-hackFinishTime
+  })
 
 }
 
@@ -63,7 +66,13 @@ function runScript(ns: NS, target: string, scriptName: string, threads: number) 
       
       if (!ns.exec(scriptName, s, threads, target)) 
       { 
-        ns.print({msg: "Failed execution; no individual server has enough ram", scriptName, threads, target, host:ns.getHostname()})
+        ns.print({
+          msg: "Failed execution; no individual server has enough ram", 
+          scriptName, 
+          threads, 
+          target, 
+          host:ns.getHostname()
+        })
         return false
       }
       return true

@@ -1,4 +1,5 @@
 import { NS } from '@ns'
+
 export async function main(ns: NS) {
   let report = ns.args[0]
   let money = ns.getServerMoneyAvailable('home')

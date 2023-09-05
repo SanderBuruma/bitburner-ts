@@ -37,11 +37,12 @@ export function servers_with_ram(ns: NS, treshold = 16) {
   .sort((a,b)=>ns.getServerMaxRam(b) - ns.getServerMaxRam(a))
 }
 
-/** @description returns the total ram available on all purchased servers */
-export function total_max_ram(ns: NS, all = false) {
-  let servers = purchased_and_homeserver(ns, true, true)
+/** @description returns the total ram available on all servers */
+export function total_max_ram(ns: NS, with_home = false) {
+  let servers = rooted_servers(ns, with_home)
   let serversTotalRam = (servers.reduce((a,c)=>{
-    return a + ns.getServerMaxRam(c) - ns.getServerMaxRam(c)
+    let m_ram = ns.getServerMaxRam(c)
+    return a + m_ram
   }, 0))
   return serversTotalRam
 }
@@ -79,7 +80,13 @@ export function run_script(ns: NS, scriptName: string, threads: number, ...aargs
       pid = ns.exec(scriptName, s, threads, ...aargs)
       if (!pid) 
       { 
-        ns.print({msg: "Failed execution; no individual server has enough ram", scriptName, threads, host:ns.getHostname(), aargs})
+        ns.print({
+          msg: "Failed execution; no individual server has enough ram", 
+          scriptName, 
+          threads, 
+          host:ns.getHostname(), 
+          aargs
+        })
         throw new Error('Failed execution, See log')
       }
       return pid
