@@ -1,7 +1,7 @@
 import { rooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
-import { write_to_port } from 'helpers/utils'
-import { ServerResult } from 'interfaces/ServerResult'
+import { write_to_port } from 'helpers/utils.js'
+import { IServerResult } from 'interfaces/IServerResult.js'
 
 export async function main(ns: NS) {
   let method = ns.args[0]?.toString() ?? 'lmt'
@@ -23,7 +23,7 @@ export async function main(ns: NS) {
 
 }
 
-export function lmt(ns: NS, cur_money = false): ServerResult[] {
+export function lmt(ns: NS, cur_money = false): IServerResult[] {
   let servers = rooted_servers(ns)
   let filterByMinSecurity = ns.args[0]
 
@@ -40,7 +40,7 @@ export function lmt(ns: NS, cur_money = false): ServerResult[] {
       maxLength = s.length;
     }
   }
-  let return_servers: ServerResult[] = servers.map(s=>{
+  let return_servers: IServerResult[] = servers.map(s=>{
     return {
       name: s,
       score: Math.floor(scoreTarget(ns, s)),

@@ -1,7 +1,8 @@
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
-    ns.tprint('hello world')
+  ns.tprint('Av  RAM: ' + ns.formatRam(available_ram(ns, 0, true)))
+  ns.tprint('Max RAM: ' + ns.formatRam(total_max_ram(ns, true)))
 }
 
 export function scan_all(ns: NS) {

@@ -106,7 +106,7 @@ export async function run_write_read(ns: NS, filename: string, threads: number, 
   if (pid === 0) throw new Error('Failure to run ' + filename + ' threads: ' + threads + ' args ' + JSON.stringify(args))
   let port = ns.getPortHandle(pid)
   await await_predicate(ns, ()=>port.peek() != "NULL PORT DATA", 250)
-  await port.nextWrite()
+  port.read()
   let data = port.read().toString()
   return JSON.parse(data)
 }

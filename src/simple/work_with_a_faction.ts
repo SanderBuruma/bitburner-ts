@@ -1,5 +1,5 @@
 import { NS } from '@ns'
-import { FactionResult } from 'interfaces/FactionResult'
+import { IFactionResult } from 'interfaces/IFactionResult.js'
 import { write_to_port } from 'helpers/utils'
 
 export async function main(ns: NS) {
@@ -16,6 +16,7 @@ export async function main(ns: NS) {
 
 export async function work_with_faction(ns :NS) {
   let factions = available_factions(ns)
+
   for (let faction of factions) {
     ns.singularity.stopAction()
     await ns.sleep(500)
@@ -27,8 +28,8 @@ export async function work_with_faction(ns :NS) {
 }
 
 /** @description Gets all factions which the player can join */
-export function available_factions(ns: NS): FactionResult[] {
-  let factions: FactionResult[] = [{
+export function available_factions(ns: NS): IFactionResult[] {
+  let factions: IFactionResult[] = [{
     name: 'CyberSec',
     server: 'CSEC',
     hackingReq: ns.getServerRequiredHackingLevel('CSEC')
