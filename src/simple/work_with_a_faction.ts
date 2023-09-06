@@ -48,9 +48,16 @@ export function available_factions(ns: NS): IFactionResult[] {
   }].filter(x=>{ 
     return (ns.singularity.checkFactionInvitations().includes(x.name) || 
     ns.getPlayer().factions.includes(x.name)) &&
-    ns.getHackingLevel() >= x.hackingReq &&
-    ns.singularity.getAugmentationsFromFaction(x.name).filter(x=>ns.singularity.getOwnedAugmentations().indexOf(x) == -1)
+    ns.getHackingLevel() >= x.hackingReq
   })
+  
+  factions = factions.filter(x=>{
+    let faction_augs = ns.singularity.getAugmentationsFromFaction(x.name)
+    let owned_augs = ns.singularity.getOwnedAugmentations()
+    let a = faction_augs.filter(x=>owned_augs.indexOf(x) == -1)
+    return a.length > 1
+  })
+
   return factions
 }
 

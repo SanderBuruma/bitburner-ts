@@ -5,9 +5,7 @@ export async function main(ns: NS) {
     let target = ns.args[0]?.toString() ?? 'foodnstuff';
     let path = recur(ns, ['home'], target, 'home');
     if (!path) throw new Error('Couldn\'t find a path to ' + target)
-    ns.tprint(path)
     for (let s of path) {
-        ns.tprint(s)
         ns.singularity.connect(s)
     }
     
