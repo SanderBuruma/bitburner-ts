@@ -1,4 +1,5 @@
 import { NS } from '@ns'
+import { get_server_available_ram } from 'helpers/servers.js'
 
 export async function main(ns: NS) {
   let f: string = ns.args[0].toString() || 'servers'
@@ -95,14 +96,29 @@ export function write_to_port(ns: NS, data: object) {
 }
 
 /** @description runs a script, reads and returns the data as an object when finished. REQUIRES that data will be written and that the data be an object.
- * This function WILL freeze its calling script if no data gets written
  */
 export async function run_write_read(ns: NS, filename: string, threads: number, ...args: any[]) {
-  ns.print(JSON.stringify({method:run_write_read.name, filename, threads, args}, null, 2))
-
+  // Wait for enough RAM to free up
+  await await_predicate(ns, ()=>ns.getScriptRam(filename) * threads < get_server_available_ram(ns, ns.getHostname())) 
+  
+  // Execute!
   let pid = ns.run(filename, threads, ...args)
+  if (pid === 0) throw new Error('Failure to run ' + filename + ' threads: ' + threads + ' args ' + JSON.stringify(args))
   let port = ns.getPortHandle(pid)
+  await await_predicate(ns, ()=>port.peek() != "NULL PORT DATA", 250)
   await port.nextWrite()
   let data = port.read().toString()
   return JSON.parse(data)
+}
+
+/** @description waits for the predicate to become true. The timeout should be longer than how long the predicate is expected to take at any point
+ * @param {() => boolean} should return a boolean value which will release the await when true
+ * @param {number} timeout how long (ms) to wait before throwing a timeout error
+*/
+export async function await_predicate(ns: NS, predicate: () => boolean, timeout = 1000) {
+  let init_time = Date.now()
+  while (!predicate() && init_time + timeout > Date.now()) await ns.sleep(5)
+  if (init_time + timeout <= Date.now()) {
+    throw new Error('Timed out in ' + await_predicate.name + ' predicate: ' + predicate.toString() + '\nPerhaps the timeout was too short at ' + timeout)
+  }
 }
