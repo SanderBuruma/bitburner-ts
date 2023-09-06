@@ -48,22 +48,9 @@ export function total_max_ram(ns: NS, with_home = false) {
   return serversTotalRam
 }
 
-export function purchased_and_homeserver(ns: NS, withHome=true, allroot=true) {
-  let servers = ns.getPurchasedServers()
-  if (allroot) {
-    servers = rooted_servers(ns)
-  }
-  else if (withHome) servers.push('home')
-  servers = servers.filter(s=>ns.getServerMaxRam(s) - ns.getServerUsedRam(s))
-  servers = servers.sort((a,b)=>{
-    return ns.getServerMaxRam(b) - ns.getServerMaxRam(a)
-  })
-  return servers
-}
-
 /** @description returns the total ram available on all purchased servers */
 export function available_ram(ns: NS, minimum_ram = 8, with_home = false) {
-  let servers = purchased_and_homeserver(ns, with_home, true)
+  let servers = rooted_servers(ns, with_home)
   let serversTotalRam = (servers.reduce((a,s)=>{
     let available_ram = ns.getServerMaxRam(s) - ns.getServerUsedRam(s)
     return available_ram >= minimum_ram ? a + available_ram : a
