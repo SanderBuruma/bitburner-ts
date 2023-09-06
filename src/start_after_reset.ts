@@ -2,8 +2,9 @@ import { NS, ProcessInfo } from '@ns'
 import { hack_grow_weaken_ratios, kill_previous, log, run_write_read, set_log_settings } from 'helpers/utils.js'
 import { lmt } from 'list_money_targets.js'
 import { ports_we_can_hack } from './hackall'
-import { available_ram, get_server_available_ram, nonrooted_servers, rooted_servers, run_script, total_max_ram } from './helpers/servers'
-import { FactionResult } from './interfaces/FactionResult'
+import { available_ram, get_server_available_ram, nonrooted_servers, rooted_servers, run_script, total_max_ram } from 'helpers/servers'
+import { FactionResult } from 'interfaces/FactionResult'
+import { ServerResult } from 'interfaces/ServerResult'
 
 let runmode = initBitNode.name
 let script_pids: number[] = []
@@ -234,9 +235,9 @@ async function update_batchers(ns: NS) {
   
   // Start new batching script
   /** @type string[] */
-  let targets
+  let targets: ServerResult[]
   if (servers.length < 3) return
-  targets = lmt(ns)
+  targets = lmt(ns, false)
   
   if (targets.length == 0) return
   targets = targets.filter(s=>s.name != 'n00dles')
@@ -312,7 +313,7 @@ function kill_script_pids(ns: NS) {
 
 async function hgw_continuous_best_target(ns: NS) {
   // Gather some necesssary information
-  let targets = lmt(ns).filter(x=>ns.hackAnalyzeChance(x.name)>.5)
+  let targets: ServerResult[] = lmt(ns, true).filter(x=>ns.hackAnalyzeChance(x.name)>.5)
   let target = targets.shift()?.name ?? 'foodnstuff'
   let a_ram = available_ram(ns, 2, false)
   let max_ram = total_max_ram(ns, false)

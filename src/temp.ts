@@ -1,6 +1,6 @@
 import { NS } from '@ns'
 import { FactionResult } from './interfaces/FactionResult'
-import { await_predicate, run_write_read } from './helpers/utils'
+import { await_predicate } from 'helpers/utils'
 
 export async function main(ns: NS) {
     let check_time = Date.now()

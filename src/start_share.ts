@@ -1,5 +1,5 @@
 import { NS } from '@ns'
-import { get_server_available_ram } from './helpers/servers'
+import { get_server_available_ram } from 'helpers/servers'
 
 export async function main(ns: NS) {
   let target = ns.args[0].toString() || 'home'

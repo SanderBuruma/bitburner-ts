@@ -1,5 +1,6 @@
 import { nonrooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
+import { log } from 'helpers/utils'
 
 export async function main(ns: NS) {
 
@@ -20,7 +21,7 @@ export async function main(ns: NS) {
       if (httpExists) ns.httpworm(s)
       if (ftpExists) ns.ftpcrack(s)
       ns.nuke(s)
-      ns.tprintf(s + ' has been nuked')
+      log(ns, s + ' has been nuked')
       nuked_something = true
     }
   })

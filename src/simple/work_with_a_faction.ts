@@ -1,6 +1,6 @@
 import { NS } from '@ns'
-import { FactionResult } from '../interfaces/FactionResult'
-import { write_to_port } from '/helpers/utils'
+import { FactionResult } from 'interfaces/FactionResult'
+import { write_to_port } from 'helpers/utils'
 
 export async function main(ns: NS) {
   let method = ns.args[0]?.toString() ?? 'invalid'
