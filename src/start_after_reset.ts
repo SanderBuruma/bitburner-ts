@@ -1,16 +1,17 @@
 import { NS, ProcessInfo } from '@ns'
-import { hack_grow_weaken_ratios, kill_previous, log, run_write_read, set_log_settings } from 'helpers/utils.js'
+import { await_predicate, hack_grow_weaken_ratios, kill_previous, log, run_write_read, set_log_settings } from 'helpers/utils.js'
 import { lmt } from 'list_money_targets.js'
 import { ports_we_can_hack } from './hackall'
 import { available_ram, get_server_available_ram, nonrooted_servers, rooted_servers, run_script, total_max_ram } from 'helpers/servers'
-import { FactionResult } from 'interfaces/FactionResult'
-import { ServerResult } from 'interfaces/ServerResult'
+import { IFactionResult } from 'interfaces/IFactionResult.js'
+import { IServerResult } from 'interfaces/IServerResult.js'
 
-let runmode = initBitNode.name
+let runmode: string
 let script_pids: number[] = []
 
 export async function main(ns: NS) {
 
+  runmode = initBitNode.name
   set_log_settings(ns, true, true, false)
 
   kill_previous(ns)
@@ -43,6 +44,8 @@ export async function main(ns: NS) {
 }
 
 async function initBitNode(ns: NS) {
+  await commit_rob_store(ns)
+  await ns.sleep(50)
   await ns.run('hackall.js')
   await ns.sleep(50)
   if (ns.getServerMaxRam('home') >= 64) {
@@ -51,8 +54,6 @@ async function initBitNode(ns: NS) {
     return
   }
 
-  await commit_rob_store(ns)
-  await ns.sleep(50)
   log(ns, 'Initiating hgw_continuous_best_target')
   await hgw_continuous_best_target(ns)
   log(ns, 'Waiting to upgrade home RAM')
@@ -73,45 +74,58 @@ async function initBitNode(ns: NS) {
 async function initAfterReset(ns: NS) {
   while (ns.getServerMaxRam('home') < 256)
   {
+    await buy_servers(ns)
     if (ns.getPlayer().money > ns.singularity.getUpgradeHomeRamCost()) {
-      await ns.run('simple/upg_home_ram.js', 1)
+      ns.run('simple/upg_home_ram.js', 1)
       await ns.sleep(50)
     }
     await buy_programs(ns)
     await upgrade_port_exploits(ns)
     await commit_rob_store(ns)
+    await upg_home_ram(ns)
     await hgw_continuous_best_target(ns)
     await backdoor_everything(ns)
 
-    let factions: FactionResult[] = await run_write_read(ns, 'simple/work_with_a_faction.js', 1, 'factions_to_port')
+    let factions: IFactionResult[] = await run_write_read(ns, 'simple/work_with_a_faction.js', 1, 'factions_to_port')
     let work = ns.singularity.getCurrentWork()
-    if (work && work['type'] !== 'FACTION' && factions.length > 0) {
+    if (factions.length > 0 && !work || work['type'] !== 'FACTION') {
       log(ns, 'initiating work with faction:' + factions[0].name)
       ns.run('simple/work_with_a_faction.js', 1, 'work_with_faction')
     }
-    await ns.sleep(500)
+    await ns.sleep(1000)
   }
   runmode = operating.name
 }
 
 async function operating(ns: NS) {
-  await upg_home(ns)
-  await buy_servers(ns)
-  await buy_programs(ns)
-  await upgrade_port_exploits(ns)
-  // await update_hacknet(ns)
-  await update_batchers(ns)
-  // await work_with_faction(ns)
-  // await buy_augs(ns)
-  // await install_augs(ns)
-  // await run_stocks(ns)
+  while (true) {
+    await buy_servers(ns)
+    await upg_home_ram(ns)
+    await buy_programs(ns)
+    await upgrade_port_exploits(ns)
+    // await update_hacknet(ns)
+    // await update_batchers(ns)
+    await hgw_continuous_best_target(ns)
+
+    let factions: IFactionResult[] = await run_write_read(ns, 'simple/work_with_a_faction.js', 1, 'factions_to_port')
+    let work = ns.singularity.getCurrentWork()
+    if (factions.length > 0 && !work || work['type'] !== 'FACTION') {
+      log(ns, 'initiating work with faction:' + factions[0].name)
+      ns.run('simple/work_with_a_faction.js', 1, 'work_with_faction')
+    }
+    await ns.sleep(1000)
+    // await buy_augs(ns)
+    // await install_augs(ns)
+    // await run_stocks(ns)
+  }
 }
 
-async function upg_home(ns: NS) {
-  await ns.run('simple/upg_home_cores.js', 1)
-  await ns.sleep(50)
-  await ns.run('simple/upg_home_ram.js', 1)
-  await ns.sleep(50)
+async function upg_home_ram(ns: NS) {
+  if (ns.singularity.getUpgradeHomeRamCost() * 1.5 < ns.getPlayer().money) {
+    await await_predicate(ns, ()=>ns.getScriptRam('simple/upg_home_ram.js') < get_server_available_ram(ns, 'home'))
+    log(ns, 'Upgrading home RAM from ' + ns.formatRam(ns.getServerMaxRam('home')))
+    ns.run('simple/upg_home_ram.js', 1)
+  }
 }
 
 async function buy_servers(ns: NS) {
@@ -129,11 +143,12 @@ async function buy_servers(ns: NS) {
       return
     }
   } else {
-    cost = ns.getPurchasedServerCost(64)
+    let ram = 2 ** Math.floor(Math.log2(total_max_ram(ns, false)))
+    cost = ns.getPurchasedServerCost(ram)
     if (player.money > cost) 
     {
       await ns.run('buyserver.js', 1)
-      log(ns, 'Bought a server for ' + ns.formatNumber(cost))
+      log(ns, 'Bought a server for ' + ns.formatNumber(cost) + ' RAM: ' + ns.formatRam(ram))
       await ns.sleep(50)
       return
     }
@@ -151,25 +166,25 @@ async function buy_programs(ns: NS) {
   
   let programs = [
     {
-      money: 5e5,
+      money: 500e3,
       program: 'BruteSSH.exe'
     }, {
-      money: 15e5,
+      money: 1.5e6,
       program: 'FTPCrack.exe'
     }, {
-      money: 16e5,
+      money: 1.6e6,
       program: 'DeepscanV1.exe'
     }, {
       money: 5e6,
       program: 'relaySMTP.exe'
     }, {
-      money: 3e7,
+      money: 30e6,
       program: 'HTTPWorm.exe'
     }, {
-      money: 2.5e8,
+      money: 250e6,
       program: 'SQLInject.exe'
     }, {
-      money: 4e10,
+      money: 40e9,
       program: 'Formulas.exe'
     },
   ]
@@ -235,7 +250,7 @@ async function update_batchers(ns: NS) {
   
   // Start new batching script
   /** @type string[] */
-  let targets: ServerResult[]
+  let targets: IServerResult[]
   if (servers.length < 3) return
   targets = lmt(ns, false)
   
@@ -311,17 +326,24 @@ function kill_script_pids(ns: NS) {
   }
 }
 
+let hgw_cbt_cur_target: IServerResult
 async function hgw_continuous_best_target(ns: NS) {
   // Gather some necesssary information
-  let targets: ServerResult[] = lmt(ns, true).filter(x=>ns.hackAnalyzeChance(x.name)>.5)
-  let target = targets.shift()?.name ?? 'foodnstuff'
+  let targets: IServerResult[] = lmt(ns, false).filter(x=>ns.hackAnalyzeChance(x.name)>.5)
+  if (targets.length < 1) return
+  let target = targets.shift() ?? { name: '', score: 0, hackingLv: 1_000_000}
   let a_ram = available_ram(ns, 2, false)
   let max_ram = total_max_ram(ns, false)
-  let hgw_rs = hack_grow_weaken_ratios(ns, target)
+  let hgw_rs = hack_grow_weaken_ratios(ns, target.name)
   let sum_threads_per_1_hack = hgw_rs.grow_threads_per_hack_thread + hgw_rs.weaken_threads_plus_grow_threads_per_hack + 1
 
-  // Check if we should start a new cycle
-  if (sum_threads_per_1_hack * 1.8 > a_ram || a_ram * 2 < max_ram) {
+  // Check if we should NOT start a new cycle
+  if (
+    !!hgw_cbt_cur_target && // We already have a target
+    hgw_cbt_cur_target.score / 1.5 > target.score && // The next best target isn't good enough in order for us to switch
+    a_ram * 4 < max_ram // Not enough availale ram is being wasted
+
+  ) {
     return
   }
 
@@ -340,10 +362,9 @@ async function hgw_continuous_best_target(ns: NS) {
   // Start the new continuous cycle
   a_ram = available_ram(ns, 2, false) 
   let hgw_rs_multiple = Math.floor(a_ram / sum_threads_per_1_hack / 1.8)
-  let hack_threads = Math.max(Math.floor(hgw_rs_multiple), 1)
+  let hack_threads = Math.min(Math.max(Math.floor(hgw_rs_multiple), 1), hgw_rs.hack_threads)
   let grow_threads = Math.max(Math.ceil(hgw_rs_multiple * hgw_rs.grow_threads_per_hack_thread), 1)
   let weaken_threads = Math.max(Math.ceil(hgw_rs_multiple * hgw_rs.weaken_threads_plus_grow_threads_per_hack), 1)
-  //ns.tprint(JSON.stringify({target, hgw_rs, a_ram, hgw_rs_multiple, hack_threads, grow_threads, weaken_threads, sum_threads_per_1_hack}, null, 2))
   for (let s of rooted_servers(ns, false)) {
     let ram = get_server_available_ram(ns, s)
     let hack_script_ram = ns.getScriptRam('repeat/hack.js')
@@ -356,7 +377,7 @@ async function hgw_continuous_best_target(ns: NS) {
         'repeat/weaken.js', 
         s, 
         Math.floor(ram / weaken_script_ram), 
-        target
+        target.name
       )
       weaken_threads -= Math.floor(ram / weaken_script_ram)
       continue
@@ -365,7 +386,7 @@ async function hgw_continuous_best_target(ns: NS) {
         'repeat/weaken.js', 
         s, 
         weaken_threads, 
-        target
+        target.name
       )
       weaken_threads = 0
     }
@@ -380,7 +401,7 @@ async function hgw_continuous_best_target(ns: NS) {
         'repeat/grow.js', 
         s, 
         Math.floor(ram / grow_script_ram), 
-        target
+        target.name
       )
       grow_threads -= Math.floor(ram / grow_script_ram)
       continue
@@ -389,14 +410,14 @@ async function hgw_continuous_best_target(ns: NS) {
         'repeat/grow.js', 
         s, 
         grow_threads, 
-        target
+        target.name
       )
       grow_threads = 0
     }
     
     await ns.sleep(50)
     ram = get_server_available_ram(ns, s)
-    if (ram < weaken_script_ram) continue
+    if (ram < hack_script_ram) continue
     
     // Initiate repeat/hack.js scripts
     if (hack_threads >= 1 && hack_threads * hack_script_ram > ram) {
@@ -404,7 +425,7 @@ async function hgw_continuous_best_target(ns: NS) {
         'repeat/hack.js', 
         s, 
         Math.floor(ram / hack_script_ram), 
-        target
+        target.name
       )
       hack_threads -= Math.floor(ram / hack_script_ram)
       continue
@@ -413,10 +434,12 @@ async function hgw_continuous_best_target(ns: NS) {
         'repeat/hack.js', 
         s, 
         hack_threads, 
-        target
+        target.name
       )
       hack_threads = 0
     }
+
+    hgw_cbt_cur_target = target
     
   }
 }
