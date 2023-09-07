@@ -1,4 +1,4 @@
-import { get_server_available_ram, rooted_servers } from 'helpers/servers.js'
+import { run_script } from 'helpers/servers.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
@@ -28,21 +28,21 @@ export async function main(ns: NS) {
 
   // Start the weaken script
   let wTime = ns.getWeakenTime(target)
-  if (!runScript(ns, target, 'line1/weaken.js', weakenThreads)) return
+  if (!run_script(ns, 'simple/weaken.js', weakenThreads, target)) return
   let weakenFinishTime = Date.now() + wTime
   ns.print({msg:'weakening', dn: Date.now() - now})
 
   // Wait to start growth script
   await ns.sleep(ns.getWeakenTime(target) - ns.getGrowTime(target) - timingLeniency)
   while ((Date.now() - now) < (wTime - ns.getGrowTime(target) - timingLeniency)) await ns.sleep(1)
-  if (!runScript(ns, target, 'simple/grow.js', growthThreads)) return
+  if (!run_script(ns, 'simple/grow.js', growthThreads, target)) return
   ns.print({msg:'growing', dn: Date.now() - now})
   let growFinishTime = Date.now() + ns.getGrowTime(target)
 
   // Wait to start hack script
   await ns.sleep(ns.getGrowTime(target) - ns.getHackTime(target) - timingLeniency * 2)
   while ((Date.now() - now) < (wTime - ns.getHackTime(target) - timingLeniency * 2)) await ns.sleep(1)
-  if (!runScript(ns, target, 'simple/hack.js', hackThreads)) return
+  if (!run_script(ns, 'simple/hack.js', hackThreads, target)) return
   let hackFinishTime = Date.now() + ns.getHackTime(target)
   ns.print({msg:'hacking', dn: Date.now() - now})
 
@@ -56,28 +56,4 @@ export async function main(ns: NS) {
     growMhack: growFinishTime-hackFinishTime
   })
 
-}
-
-function runScript(ns: NS, target: string, scriptName: string, threads: number) {
-  let servers = rooted_servers(ns)
-  for (let s of servers) {
-    let availableRam = get_server_available_ram(ns, s)
-    if (availableRam > threads * ns.getScriptRam(scriptName)) {
-      
-      if (!ns.exec(scriptName, s, threads, target)) 
-      { 
-        ns.print({
-          msg: "Failed execution; no individual server has enough ram", 
-          scriptName, 
-          threads, 
-          target, 
-          host:ns.getHostname()
-        })
-        return false
-      }
-      return true
-    }
-  }
-  ns.print({msg: "Not enough ram", scriptName, threads, target, host:ns.getHostname()})
-  return false
 }

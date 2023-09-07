@@ -63,7 +63,7 @@ export function run_script(ns: NS, scriptName: string, threads: number, ...aargs
   let servers = rooted_servers(ns)
   for (let s of servers) {
     let pid
-    let availableRam = ns.getServerMaxRam(s) - ns.getServerUsedRam(s)
+    let availableRam = get_server_available_ram(ns, s)
     if (availableRam > threads * ns.getScriptRam(scriptName)) {
       pid = ns.exec(scriptName, s, threads, ...aargs)
       if (!pid) 
@@ -84,6 +84,6 @@ export function run_script(ns: NS, scriptName: string, threads: number, ...aargs
   return 0
 }
 
-export function get_server_available_ram(ns: NS, target: string) {
-  return ns.getServerMaxRam(target) - ns.getServerUsedRam(target)
+export function get_server_available_ram(ns: NS, server: string) {
+  return ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
 }

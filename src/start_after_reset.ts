@@ -37,6 +37,9 @@ export async function main(ns: NS) {
       case (operating.name):
         await operating(ns)
         break;
+      case (operating_lv_2.name):
+        await operating_lv_2(ns)
+        break;
       default:
         throw new Error(`runmode '${runmode}' not recognized`)
     }
@@ -89,17 +92,20 @@ async function initAfterReset(ns: NS) {
 
     await ns.sleep(1000)
   }
+
+  await ns.run('killall.js', 1, ns.getRunningScript()?.pid ?? 0)
+  await ns.sleep(500)
   runmode = operating.name
 }
 
 async function operating(ns: NS) {
-  while (true) {
+  while (total_max_ram(ns, false) < 2 ** 12) {
     await buy_servers(ns)
     await upg_home_ram(ns)
     await buy_programs(ns)
     await upgrade_port_exploits(ns)
     await hgw_continuous_best_target(ns)
-    await home_weaken_repeat(ns)
+    await home_weaken_repeat(ns, 50)
     await backdoor_everything(ns)
     // await update_hacknet(ns)
     // await update_batchers(ns)
@@ -110,13 +116,34 @@ async function operating(ns: NS) {
     // await install_augs(ns)
     // await run_stocks(ns)
   }
+  runmode = operating_lv_2.name
 }
+async function operating_lv_2(ns: NS) {
+  while (true) {
+    await buy_servers(ns)
+    await upg_home_ram(ns)
+    await buy_programs(ns)
+    await upgrade_port_exploits(ns)
+    await update_batchers(ns)
+    await home_weaken_repeat(ns, 1000)
+    await backdoor_everything(ns)
+    // await update_hacknet(ns)
+
+    await work_with_faction(ns)
+    await ns.sleep(1000)
+    // await buy_augs(ns)
+    // await install_augs(ns)
+    // await run_stocks(ns)
+  }
+}
+
 async function work_with_faction(ns: NS) {
   if (Date.now() % 60000 < 1000) {
     let factions: IFactionResult[] = await run_write_read(ns, 'simple/work_with_a_faction.js', 1, 'factions_to_port')
     let work = ns.singularity.getCurrentWork()
-    if (factions.length > 0 && !work || work['type'] !== 'FACTION') {
-      log(ns, 'initiating work with faction:' + factions[0].name)
+    if (factions.length > 0 && (!work || work['type'] !== 'FACTION')) {
+      let faction = factions[0]
+      log(ns, 'initiating work with faction:' + faction.name)
       ns.run('simple/work_with_a_faction.js', 1, 'work_with_faction')
     }
   }
@@ -131,6 +158,27 @@ async function upg_home_ram(ns: NS) {
 }
 
 async function buy_servers(ns: NS) {
+  // Check if we should skip on buying more servers
+  let work = ns.singularity.getCurrentWork()
+  if (work && work['type'] === 'FACTION') {
+    let faction = work['factionName']    
+    let owned_augs = ns.singularity.getOwnedAugmentations(true)
+    let augmentations = ns.singularity.getAugmentationsFromFaction(faction)
+    .filter(x=>!owned_augs.includes(x))
+    .sort((a,b)=>{
+      return ns.singularity.getAugmentationRepReq(b) - ns.singularity.getAugmentationRepReq(a)
+    })
+
+    if (augmentations.length > 0) {
+      let max_rep_required = ns.singularity.getAugmentationRepReq(augmentations[0])
+
+      if (ns.singularity.getFactionRep(faction) * 2 > max_rep_required) {
+        // If we are close to finishing the rep for an organization, stop buying servers
+        return
+      }
+    }
+  }
+
   let servers = ns.getPurchasedServers().sort((a,b)=>ns.getServerMaxRam(b) - ns.getServerMaxRam(a))
   let cost
   let player = ns.getPlayer()
@@ -221,8 +269,12 @@ async function backdoor_everything(ns: NS) {
 
 async function update_batchers(ns: NS) {
   // Gather batching scripts
-  let servers = rooted_servers(ns)
+  let servers = rooted_servers(ns, true)
   let scripts: ProcessInfo[] = []
+  for (let s of servers) {
+    let s_scripts = ns.ps(s)
+    scripts = scripts.concat(s_scripts)
+  }
   scripts = scripts.filter(s=>s.filename == 'batch/initiate.js')
 
   // Judge how much ram they use
@@ -244,10 +296,10 @@ async function update_batchers(ns: NS) {
   let av_ram = available_ram(ns)
 
   // Judge if we should use more ram
-  if (av_ram < batch_ram_sum * 2) return
+  if (scripts.length > 0) return
 
   // If we do, kill all batching scripts
-  scripts.forEach(s=>ns.kill(s.pid))
+  // scripts.forEach(s=>ns.kill(s.pid))
 
   // Wait for a while
   await ns.sleep(1e3)
@@ -256,7 +308,12 @@ async function update_batchers(ns: NS) {
   /** @type string[] */
   let targets: IServerResult[]
   if (servers.length < 3) return
-  targets = lmt(ns, false)
+  let current_targets = scripts
+  .map(y=>y.args)
+  .reduce((a,c)=>{
+    return a.concat(c)
+  }, [])
+  targets = lmt(ns, false).filter(x=>!current_targets.includes(x.name))
   
   if (targets.length == 0) return
   targets = targets.filter(s=>s.name != 'n00dles')
@@ -463,8 +520,7 @@ async function commit_rob_store(ns: NS) {
   }
 }
 
-function home_weaken_repeat(ns: NS) {
-  let margin = 50
+function home_weaken_repeat(ns: NS, margin = 50) {
   let home_ram = get_server_available_ram(ns, 'home')
   if (home_ram < margin + ns.getScriptRam('repeat/weaken.js')) {
     return
