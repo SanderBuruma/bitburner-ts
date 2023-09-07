@@ -1,9 +1,14 @@
-import { log } from 'helpers/utils.js'
 import { NS } from '@ns'
+import { log } from 'helpers/utils.js'
 
 let symbols: string[]
+let tick_duration = 4e3
 export async function main(ns: NS) {
   let buy_treshold: number = parseFloat(ns.args[0].toString()) * 1e9
+  if (!ns.stock.hasWSEAccount()) {
+    throw new Error('Don\'t have a WSE account! We need it to be able to trade!')
+
+  }
 
   ns.disableLog('ALL')
   symbols = ns.stock.getSymbols()
@@ -29,7 +34,7 @@ export async function main(ns: NS) {
   
   while (true) {
     // standard wait
-    await ns.sleep(1e3)
+    await ns.sleep(tick_duration)
 
     // check owned stocks and sell those that have a bad forecast
     let owned_stocks = symbols.map(s => {
