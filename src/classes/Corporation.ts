@@ -1,5 +1,6 @@
 import { NS } from '@ns'
-import { log } from '/helpers/utils'
+import { log } from 'helpers/utils'
+import { Colors } from 'helpers/colors'
 
 export class Corporation {
     public symbol: string
@@ -23,7 +24,7 @@ export class Corporation {
     public get askPrice(): number {
         return this.ns.stock.getAskPrice(this.symbol)
     }
-    public get priceSpread(): number {
+    public get spread(): number {
         return Math.round(1e3 * (this.askPrice - this.bidPrice) / this.askPrice) / 1e3
     }
     public get capitalization(): number {
@@ -84,11 +85,19 @@ export class Corporation {
     }
     public sell(amount = 0): boolean {
         amount = amount > 0 && amount % 1 === 0 ? amount : this.ownedStocks
-        let boughtPrice = this.boughtPrice
-        let bidPrice = this.bidPrice
+        const boughtPrice = this.boughtPrice
+        const bidPrice = this.bidPrice
+        const profit = (this.bidPrice - this.boughtPrice) * amount
+        let profit_colored: string
+        if (profit > 0) {
+            profit_colored = Colors.good(this.ns.formatNumber(profit))
+        } else {
+            profit_colored = Colors.bad(this.ns.formatNumber(profit))
+        }
         let result = this.ns.stock.sellStock(this.symbol, amount)
+        let color_buy_price = Colors.highlight(this.ns.formatNumber(amount * bidPrice - 2e5))
         if (result) {
-            log(this.ns, `selling ${this.symbol} for ${this.ns.formatNumber(amount * bidPrice - 2e5)} and ${this.ns.formatNumber(amount * (bidPrice - boughtPrice))} profit`)
+            log(this.ns, `selling ${Colors.highlight(this.symbol.padEnd(5, '-'))} for ${color_buy_price} and ${profit_colored} profit`)
             return true
         }
         return false
@@ -98,7 +107,6 @@ export class Corporation {
         if (this.remainingStocks < amount) amount = this.remainingStocks
         if (this.ns.stock.buyStock(this.symbol, amount > 0 ? amount : this.ownedStocks))
         {
-            // log(this.ns, `bought ${this.symbol}, we now have ${this.ns.formatNumber(this.ownedStocks * this.bidPrice)} worth of ${this.symbol}`)
             return true
         }
         return false

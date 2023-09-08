@@ -1,11 +1,11 @@
 import { NS } from '@ns'
-import { Corporation } from './classes/Corporation'
+import { Corporation } from 'classes/Corporation'
 
 export async function main(ns: NS) {
     ns.tail()
     ns.disableLog('ALL')
 
-    const tick_duration = 4e3
+    const tick_duration = 6e3
     let corporations = ns.stock.getSymbols().map(x=>new Corporation(ns, x, 20))
     const init = Date.now()
     let next_tick = init + tick_duration

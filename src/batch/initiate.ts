@@ -1,5 +1,6 @@
 import { rooted_servers, available_ram, get_server_available_ram } from 'helpers/servers.js'
 import { NS } from '@ns'
+import { Colors } from 'helpers/colors'
 
 let exploitTiming: number
 let timingFactor: number
@@ -18,11 +19,11 @@ export async function main(ns: NS) {
 
   let multiplier = parseFloat(ns.args[2].toString() || '2')
   if (multiplier > 2) {
-    ns.tprintf('Warning: Multiplier with value ' + multiplier + ' is too high, should be less than or equal to 2, adjusting...')
+    ns.tprintf(Colors.warning()+'Multiplier with value ' + multiplier + ' is too high, should be less than or equal to 2, adjusting...')
     multiplier = 2
   }
   if (multiplier <= 1) {
-    ns.tprintf('Warning: Multiplier with value ' + multiplier + ' is too low, should be greater than 1, adjusting...')
+    ns.tprintf(Colors.warning()+'Multiplier with value ' + multiplier + ' is too low, should be greater than 1, adjusting...')
     multiplier = 1.001
   }
 

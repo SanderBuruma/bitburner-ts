@@ -1,7 +1,7 @@
 import { NS, ProcessInfo } from '@ns'
 import { await_predicate, hack_grow_weaken_ratios, kill_previous, log, run_write_read, set_log_settings } from 'helpers/utils.js'
 import { lmt } from 'list_money_targets.js'
-import { ports_we_can_hack } from './hackall'
+import { ports_we_can_hack } from 'hackall'
 import { available_ram, get_server_available_ram, nonrooted_servers, rooted_servers, run_script, total_max_ram } from 'helpers/servers'
 import { IFactionResult } from 'interfaces/IFactionResult.js'
 import { IServerResult } from 'interfaces/IServerResult.js'
@@ -172,7 +172,7 @@ async function buy_servers(ns: NS) {
     if (augmentations.length > 0) {
       let max_rep_required = ns.singularity.getAugmentationRepReq(augmentations[0])
 
-      if (ns.singularity.getFactionRep(faction) * 2 > max_rep_required) {
+      if (ns.singularity.getFactionRep(faction) * 4 > max_rep_required) {
         // If we are close to finishing the rep for an organization, stop buying servers
         return
       }

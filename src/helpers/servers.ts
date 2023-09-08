@@ -1,4 +1,5 @@
 import { NS } from '@ns'
+import { Colors } from 'helpers/colors'
 
 export async function main(ns: NS) {
   ns.tprint('Av  RAM: ' + ns.formatRam(available_ram(ns, 0, true)))
@@ -69,7 +70,7 @@ export function run_script(ns: NS, scriptName: string, threads: number, ...aargs
       if (!pid) 
       { 
         ns.print({
-          msg: "Failed execution; no individual server has enough ram", 
+          msg: Colors.warning() + "Failed execution. no individual server has enough RAM", 
           scriptName, 
           threads, 
           host:ns.getHostname(), 
@@ -80,7 +81,7 @@ export function run_script(ns: NS, scriptName: string, threads: number, ...aargs
       return pid
     }
   }
-  ns.print({msg: "Not enough ram", scriptName, threads, aargs, host:ns.getHostname()})
+  ns.print({msg: Colors.warning() + "Not enough RAM", scriptName, threads, aargs, host:ns.getHostname()})
   return 0
 }
 
