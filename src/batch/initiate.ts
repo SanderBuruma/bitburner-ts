@@ -1,4 +1,4 @@
-import { rooted_servers, available_ram, get_server_available_ram } from 'helpers/servers.js'
+import { rooted_servers, total_available_ram, get_server_available_ram, run_script } from 'helpers/servers.js'
 import { NS } from '@ns'
 import { Colors } from 'helpers/colors'
 
@@ -43,9 +43,9 @@ export async function main(ns: NS) {
   ns.clearLog()
   let runmode = 'analyze'
   while (true) {
-    ns.clearLog
+    ns.clearLog()
     let sleep_time = 0
-    ns.tprintf('runmode: ' + runmode + ' server: ' + target)
+    ns.printf('runmode: ' + runmode + ' server: ' + target)
       await ns.sleep(1e3)
     if (runmode === 'analyze') {
 
@@ -60,36 +60,9 @@ export async function main(ns: NS) {
 
       let own_servers = rooted_servers(ns)
 
-      own_servers.forEach(s => {
-        ns.scp('simple/weaken.js', s, 'home')
-      })
-
       let secDifference = ns.getServerSecurityLevel(target) - ns.getServerMinSecurityLevel(target)
       let maxThreads = Math.floor(secDifference / .05)
-      // ns.tprintf('maxThreads: ' + maxThreads)
-      let threadsCount = maxThreads
-      for (let s of own_servers) {
-        let threads = Math.floor(
-          (
-            get_server_available_ram(ns, s)
-          ) / ns.getScriptRam('simple/weaken.js')
-        )
-        if (threads < 1) continue
-        if (threadsCount < threads) {
-          ns.exec('simple/weaken.js', s,
-            threadsCount,
-            target
-          )
-          threadsCount = 0
-          break
-        }
-        threadsCount -= threads
-
-        ns.exec('simple/weaken.js', s,
-          threads,
-          target
-        )
-      }
+      run_script(ns, 'simple/weaken.js', maxThreads, target)
 
       sleep_time = Math.ceil(((ns.getWeakenTime(target) + 500) || 1000) / 1000)
 
@@ -98,9 +71,6 @@ export async function main(ns: NS) {
 
       let own_servers = rooted_servers(ns)
 
-      own_servers.forEach(s => {
-        ns.scp('simple/grow.js', s, 'home')
-      })
       let maxActualRatio = ns.getServerMaxMoney(target) / ns.getServerMoneyAvailable(target)
       let maxThreads = Math.floor(
         ns.growthAnalyze(
@@ -109,48 +79,10 @@ export async function main(ns: NS) {
         )
       )
       ns.print('maxThreads: ' + maxThreads)
-      let threadsCount = maxThreads
-      for (let s of own_servers) {
-        let threads = Math.floor(
-          (
-            get_server_available_ram(ns, s)
-          ) / ns.getScriptRam('simple/grow.js')
-        )
-        if (threads < 1) {
-          continue
-        }
-        if (threadsCount < threads) {
-          if (threadsCount > 0) {
-            ns.exec('simple/grow.js', s,
-              threadsCount,
-              target
-            )
-          }
-          threadsCount = 0
+      run_script(ns, 'simple/grow.js', maxThreads, target)
 
-          break
-        }
-
-        threadsCount -= threads
-        ns.exec('simple/grow.js', s,
-          threads,
-          target
-        )
-      }
-
-      if (threadsCount == 0) {
-        let weakenThreads = Math.ceil(Math.max(maxThreads / 12.5))
-        let servers = rooted_servers(ns).sort((a, b) => {
-          return (get_server_available_ram(ns, b)) -
-            (get_server_available_ram(ns, a))
-        })
-        ns.exec('simple/weaken.js', servers[0], weakenThreads, target)
-        sleep_time = Math.ceil(((ns.getWeakenTime(target) + 500) || 1000) / 1000)
-      } else {
-        sleep_time = Math.ceil(((ns.getGrowTime(target) + 500) || 1000) / 1000)
-      }
+      sleep_time = Math.ceil(((ns.getGrowTime(target) + 500) || 1000) / 1000)
       ns.print('grow phase - sleep time: ' + sleep_time + ' seconds')
-      ns.print('remaining threads: ' + threadsCount)
 
       runmode = 'analyze'
 
@@ -170,11 +102,11 @@ export async function main(ns: NS) {
         growthThreads,
         hackThreads,
         weakenThreads,
-        available_ram: available_ram(ns)
+        total_available_ram: total_available_ram(ns)
       })
 
       exploit_start_time = Date.now()
-      while (totalThreads * 1.85 < available_ram(ns)) {
+      while (totalThreads * 1.85 < total_available_ram(ns)) {
         await ns.sleep(0)
         let hosts = rooted_servers(ns)
           .sort((a, b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a))
@@ -182,9 +114,9 @@ export async function main(ns: NS) {
         let host = hosts[0]
         if (host) {
           ns.print({msg:"Executing batch/once.js", host, date:Math.floor((Date.now()-start)/1e3)})
-          if (!ns.exec('batch/once.js', host, 1, target, multiplier, timingLeniency)) {
+          if (!run_script(ns, 'batch/once.js', 1, target, multiplier.toString(), timingLeniency.toString())) {
             ns.tprintf(JSON.stringify({
-              msg: "Error: unknown reason",
+              msg: Colors.bad("Error: ") + "unknown reason",
               target,
               multiplier,
               host,
@@ -192,7 +124,7 @@ export async function main(ns: NS) {
               growthThreads,
               hackThreads,
               weakenThreads,
-              available_ram: available_ram(ns)
+              total_available_ram: total_available_ram(ns)
             }))
             return
           }
@@ -206,7 +138,7 @@ export async function main(ns: NS) {
             growthThreads,
             hackThreads,
             weakenThreads,
-            available_ram: available_ram(ns)
+            total_available_ram: total_available_ram(ns)
           }))
         }
 
@@ -217,7 +149,7 @@ export async function main(ns: NS) {
         }
         exploit_start_time += exploitTiming
       }
-      ns.tprintf(JSON.stringify({ msg:'Exited the while loop: ' + totalThreads + ' * 1.85 < ' + available_ram(ns) + ' - failed', totalThreads, available_ram: available_ram(ns), hackPercentage }))
+      ns.tprintf(JSON.stringify({ msg:"Exited the while loop: " + totalThreads + " * 1.85 < " + total_available_ram(ns) + " - failed", totalThreads, total_available_ram: total_available_ram(ns), hackPercentage }))
       break
 
     } else {

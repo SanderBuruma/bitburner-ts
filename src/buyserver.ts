@@ -31,8 +31,4 @@ export async function main(ns: NS) {
     }
 
   }
-
-  ns.getPurchasedServers().forEach(s=>{
-    ns.tprint(`${s}\t: ${ns.formatRam(ns.getServerMaxRam(s))}`)
-  })
 }

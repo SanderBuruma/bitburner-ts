@@ -1,4 +1,4 @@
-import { nonrooted_servers } from 'helpers/servers.js'
+import { nonrooted_servers, run_script } from 'helpers/servers.js'
 import { NS } from '@ns'
 import { log } from 'helpers/utils'
 
@@ -27,7 +27,7 @@ export async function main(ns: NS) {
   })
 
   if (nuked_something) {
-    ns.exec('scp2all.js', 'home')
+    run_script(ns, 'scp2all.js', 1, 'home')
   }
 }
 

@@ -1,5 +1,5 @@
 import { NS } from '@ns'
-import { get_server_available_ram } from 'helpers/servers.js'
+import { get_server_available_ram, run_script } from 'helpers/servers.js'
 
 export async function main(ns: NS) {
   let f: string = ns.args[0].toString() || 'servers'
@@ -25,9 +25,9 @@ export function hack_grow_weaken_ratios(ns: NS, target: string = 'foodnstuff') {
   let grow_threads = ns.growthAnalyze(target, multiplier)
   let fraction = 1-1/multiplier
   let hack_threads = ns.hackAnalyzeThreads(target, ns.getServerMaxMoney(target) * fraction)
-  let grow_threads_per_hack_thread = grow_threads / hack_threads / .25 * .8 * 4 // I don't understand why but * 3.2 seems to be necessary for good hack/grow balance
-  let weaken_threads_plus_grow_threads_per_hack = (1.1*grow_threads_per_hack_thread/10 + 4/25)
-  return {target, grow_threads, hack_threads, multiplier, fraction, grow_threads_per_hack_thread, weaken_threads_plus_grow_threads_per_hack}
+  let grow_threads_per_hack_thread = grow_threads / hack_threads / .25 * .8 * 4 // I don't understand why but * 4 seems to be necessary for good hack/grow balance
+  let weaken_threads_per_hack = (1.1*grow_threads_per_hack_thread/10 + 4/25)
+  return {target, grow_threads, hack_threads, multiplier, fraction, grow_threads_per_hack_thread, weaken_threads_per_hack}
 }
 
 
@@ -102,7 +102,7 @@ export async function run_write_read(ns: NS, filename: string, threads: number, 
   await await_predicate(ns, ()=>ns.getScriptRam(filename) * threads < get_server_available_ram(ns, ns.getHostname())) 
   
   // Execute!
-  let pid = ns.run(filename, threads, ...args)
+  let pid = run_script(ns, filename, threads, ...args)
   if (pid === 0) throw new Error('Failure to run ' + filename + ' threads: ' + threads + ' args ' + JSON.stringify(args))
   let port = ns.getPortHandle(pid)
   await await_predicate(ns, ()=>port.peek() != "NULL PORT DATA", 250)
@@ -114,7 +114,7 @@ export async function run_write_read(ns: NS, filename: string, threads: number, 
  * @param {() => boolean} should return a boolean value which will release the await when true
  * @param {number} timeout how long (ms) to wait before throwing a timeout error
 */
-export async function await_predicate(ns: NS, predicate: () => boolean, timeout = 1000) {
+export async function await_predicate(ns: NS, predicate: () => boolean, timeout: number = 1000) {
   let init_time = Date.now()
   while (!predicate() && init_time + timeout > Date.now()) await ns.sleep(5)
   if (init_time + timeout <= Date.now()) {

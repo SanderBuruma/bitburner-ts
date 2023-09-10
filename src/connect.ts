@@ -8,13 +8,6 @@ export async function main(ns: NS) {
     for (let s of path) {
         ns.singularity.connect(s)
     }
-    
-    if (path) {
-        log(ns, "connect " + path.join("; connect "));
-        
-    } else {
-        log(ns, "No path found to the target.");
-    }
 }
 
 function recur(ns: NS, visited: string[], target: string, current: string): string[] | null {
