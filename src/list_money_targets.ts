@@ -60,7 +60,7 @@ function scoreTarget(ns: NS, target: string, use_cur_money = false) {
 }
 
 function summarize_repeat_scripts(ns: NS) {
-  let repeat_scripts = rooted_servers(ns, true)
+  let repeat_scripts = rooted_servers(ns)
   .map(server=>ns.ps(server))
   .reduce((a,c)=>a.concat(c), [])
   .filter(script=>script.filename.includes('repeat/'))
