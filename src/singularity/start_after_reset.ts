@@ -203,7 +203,7 @@ async function buy_servers(ns: NS) {
     
 }
 
-async function buy_programs(ns: NS) {
+export async function buy_programs(ns: NS) {
   
   if (!ns.hasTorRouter() && ns.getPlayer().money > 2e5) {
     run_script(ns, 'simple/purchase_tor.js')
@@ -311,7 +311,7 @@ async function update_batchers(ns: NS) {
   .reduce((a,c)=>{
     return a.concat(c)
   }, [])
-  targets = lmt(ns, false).filter(x=>!current_targets.includes(x.name))
+  targets = lmt(ns, false, false).filter(x=>!current_targets.includes(x.name))
   
   if (targets.length == 0) return
   targets = targets.filter(s=>s.name != 'n00dles')
@@ -388,9 +388,9 @@ function kill_script_pids(ns: NS) {
 }
 
 let hgw_cbt_cur_target: IServerResult
-async function hgw_continuous_best_target(ns: NS) {
+export async function hgw_continuous_best_target(ns: NS) {
   // Gather some necesssary information
-  let targets: IServerResult[] = lmt(ns, false)
+  let targets: IServerResult[] = lmt(ns, false, false, false)
   .filter(x=>ns.hackAnalyzeChance(x.name)>.5)
   .filter(x=>ns.getWeakenTime(x.name) < 300e3)
   if (targets.length < 1) return

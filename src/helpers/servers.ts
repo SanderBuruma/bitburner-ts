@@ -1,9 +1,11 @@
 import { NS } from '@ns'
 import { Colors } from 'helpers/colors'
+import { log } from 'helpers/utils.js'
 
 export async function main(ns: NS) {
   ns.tprint('Av  RAM: ' + ns.formatRam(total_available_ram(ns, 0)))
   ns.tprint('Max RAM: ' + ns.formatRam(total_max_ram(ns)))
+  ns.tprint('Total $: ' + ns.formatRam(total_money(ns)))
 }
 
 export function scan_all(ns: NS) {
@@ -19,7 +21,14 @@ export function scan_all(ns: NS) {
     }
     i++
   }
-  return all_servers.sort((a,b)=>get_server_available_ram(ns, b)-get_server_available_ram(ns, a))
+
+  all_servers = all_servers.sort((a,b)=>get_server_available_ram(ns, b)-get_server_available_ram(ns, a))
+
+  // Make sure 'home' is the last server to be used anywhere
+  all_servers.splice(all_servers.indexOf('home'), 1)
+  all_servers.push('home')
+
+  return all_servers
 }
 
 
@@ -64,6 +73,7 @@ export function get_server_available_ram(ns: NS, server: string) {
  * @return boolean whether or not the script was run */
 export function run_script(ns: NS, scriptName: string, threads: number = 1, ...aargs: string[]) {
   let script_ram = ns.getScriptRam(scriptName)
+  if (script_ram === 0) throw new Error(scriptName + ' did not exist, did you specify the correct path?')
   let servers = rooted_servers(ns).filter(x=>get_server_available_ram(ns, x) >= script_ram)
   let ram_requirement = threads * script_ram
   if (ram_requirement > total_available_ram(ns, script_ram))
@@ -74,27 +84,36 @@ export function run_script(ns: NS, scriptName: string, threads: number = 1, ...a
     )
   }
 
+  // run on single server if possible and return PID if possible
   if (threads == 1 || ram_requirement <= get_server_available_ram(ns, servers[0]))
   {
     for (let server of servers) {
       let pid: number
       let availableRam = get_server_available_ram(ns, server)
       if (availableRam > threads * ns.getScriptRam(scriptName)) {
+
+        // scp file over if it doesn't exist
+        if (!ns.fileExists(scriptName, server)) ns.scp(scriptName, server, 'home')
+
         pid = ns.exec(scriptName, server, threads, ...aargs)
-        if (!pid) 
-        { 
-          throw new Error('Failed execution. no individual server has enough RAM')
-        }
+
+        if (!pid) continue
         return pid
       }
     }
-    ns.print({msg: Colors.warning() + "Not enough RAM", scriptName, threads, aargs, host:ns.getHostname()})
-    return 0
+    { 
+      throw new Error('Failed execution. no individual server has enough RAM ' + JSON.stringify({scriptName, threads, aargs}, null, 2))
+    }
   } 
 
+  // Spread out script over multiple servers if needed
   for (let server of servers) {
     let server_ram = get_server_available_ram(ns, server)
     let threads_to_use = Math.min(threads, Math.floor(server_ram / script_ram))
+
+    // scp file over if it doesn't exist
+    if (!ns.fileExists(scriptName, server)) ns.scp(scriptName, server, 'home')
+
     if (!ns.exec(scriptName, server, threads_to_use, ...aargs)) {
       throw new Error(
         'Failure of execution: possible reasons:' + 
@@ -123,4 +142,9 @@ export function run_script_with_fraction_threads(ns: NS, filename: string, threa
     filename, 
     threads, 
     ...aargs)
+}
+
+export function total_money(ns: NS) {
+  let total_money = rooted_servers(ns).reduce((a,c)=>{return a + ns.getServerMoneyAvailable(c)},0)
+  return (total_money - ns.getPlayer().money)
 }

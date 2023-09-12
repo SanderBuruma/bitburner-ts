@@ -45,7 +45,8 @@ export function available_factions(ns: NS): IFactionResult[] {
     name: 'BitRunners',
     server: 'run4theh111z',
     hackingReq: ns.getServerRequiredHackingLevel('run4theh111z')
-  }].filter(x=>{ 
+  }]
+  factions = factions.filter(x=>{ 
     return (ns.singularity.checkFactionInvitations().includes(x.name) || 
     ns.getPlayer().factions.includes(x.name)) &&
     ns.getHackingLevel() >= x.hackingReq

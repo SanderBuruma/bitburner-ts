@@ -24,9 +24,9 @@ export function hack_grow_weaken_ratios(ns: NS, target: string = 'foodnstuff') {
   let multiplier = 1.25
   let grow_threads = ns.growthAnalyze(target, multiplier)
   let fraction = 1-1/multiplier
-  let hack_threads = ns.hackAnalyzeThreads(target, ns.getServerMaxMoney(target) * fraction)
-  let grow_threads_per_hack_thread = grow_threads / hack_threads / .25 * .8 * 4 // I don't understand why but * 4 seems to be necessary for good hack/grow balance
-  let weaken_threads_per_hack = (1.1*grow_threads_per_hack_thread/10 + 4/25)
+  let hack_threads = ns.hackAnalyzeThreads(target, ns.getServerMoneyAvailable(target) * fraction)
+  let grow_threads_per_hack_thread = grow_threads / hack_threads * 4
+  let weaken_threads_per_hack = (1.2*grow_threads_per_hack_thread/10 + 4/25)
   return {target, grow_threads, hack_threads, multiplier, fraction, grow_threads_per_hack_thread, weaken_threads_per_hack}
 }
 

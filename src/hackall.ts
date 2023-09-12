@@ -25,10 +25,6 @@ export async function main(ns: NS) {
       nuked_something = true
     }
   })
-
-  if (nuked_something) {
-    run_script(ns, 'scp2all.js', 1, 'home')
-  }
 }
 
 /** @return the number of ports we can hack */
