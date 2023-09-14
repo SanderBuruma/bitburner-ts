@@ -7,12 +7,12 @@ export class Colors {
     static yellow: string = "\x1b[33m";
     static black: string = "\x1b[30m";
     static white: string = "\x1b[37m";
-    static def: string = "\x1b[0m";
+    static default: string = "\x1b[0m";
     static orange: string = "\x1b[38;5;214m";
 
     /**@description returns a string with the color and continues it in default color after */
     static str(color: string, msg: string): string {
-        return color + msg + this.def
+        return color + msg + this.default
     }
 
     static r(msg: string)   { return this.str(Colors.red, msg) }
@@ -26,7 +26,7 @@ export class Colors {
     static o(msg: string)   { return this.str(Colors.orange, msg) }
 
     static highlight(msg: string) {return this.w(msg)}
-    static good(msg: string) {return this.g(msg)}
+    static good(msg: string = 'Success: ') {return this.g(msg)}
     static bad(msg: string) {return this.r(msg)}
     static danger(msg: string = 'Danger: ') {return this.o(msg)}
     static warning(msg: string = 'Warning: ') {return this.y(msg)}

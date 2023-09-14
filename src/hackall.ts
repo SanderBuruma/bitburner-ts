@@ -1,6 +1,7 @@
 import { nonrooted_servers, run_script } from 'helpers/servers.js'
 import { NS } from '@ns'
 import { log } from 'helpers/utils'
+import { Colors } from 'helpers/colors'
 
 export async function main(ns: NS) {
 
@@ -13,6 +14,7 @@ export async function main(ns: NS) {
   let maxPorts = ports_we_can_hack(ns)
   let allServers = nonrooted_servers(ns).filter(x=>ns.getServerNumPortsRequired(x)<=maxPorts)
   let nuked_something = false
+  let count = 0
   allServers.forEach(s=>{
     if (ns.getServerNumPortsRequired(s) <= maxPorts) {
       if (bruteExists) ns.brutessh(s)
@@ -21,10 +23,14 @@ export async function main(ns: NS) {
       if (httpExists) ns.httpworm(s)
       if (ftpExists) ns.ftpcrack(s)
       ns.nuke(s)
-      log(ns, s + ' has been nuked')
+      count++
       nuked_something = true
     }
   })
+
+  if (count > 0) {
+    log(ns, 'Nuked ' + Colors.good(count.toString()) + ' servers! They had up to ' + Colors.good(ports_we_can_hack(ns).toString()) + ' ports')
+  }
 }
 
 /** @return the number of ports we can hack */

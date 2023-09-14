@@ -2,6 +2,8 @@ import { rooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 import { write_to_port } from 'helpers/utils.js'
 import { IServerResult } from 'interfaces/IServerResult.js'
+import { Colors } from 'helpers/colors'
+import { Server } from './classes/Server'
 
 export async function main(ns: NS) {
   const method = ns.args[0]?.toString()
@@ -12,8 +14,15 @@ export async function main(ns: NS) {
   if (method === 'lmt') {
     let servers = lmt(ns, cur_money, no_grow, hack_chance)
     for (let s of servers) {
+      const atMinSec = new Server(ns, s.name).atMinSec.toString()
       const paddedServerName = s.name.padEnd(16, ' ');
-      ns.tprint('server:' + paddedServerName + 'score: ' + ns.formatNumber(s.score) + '\thackReq:' + s.hackingLv);
+      ns.tprintf(
+        'server: %s score: %s hackReq: %s atMinSec: %s', 
+        Colors.highlight(s.name.padEnd(16, ' ')),
+        Colors.highlight(ns.formatNumber(s.score).padEnd(8, " ")),
+        Colors.highlight(s.hackingLv.toString().padEnd(5, " ")),
+        atMinSec==="true" ? Colors.good(atMinSec) : Colors.bad(atMinSec)
+      )
     }
   } else if (method === 'lmt_to_ports') {
     write_to_port(ns, lmt(ns, cur_money, no_grow))
@@ -43,23 +52,28 @@ export function lmt(ns: NS, cur_money = false, no_grow: boolean, hack_chance = f
 
 function score_target(ns: NS, target: string, use_cur_money: boolean, no_grow: boolean, hack_chance: boolean = false) {
   if (target === 'n00dles') return 0
+  if (target === 'foodnstuff') return 0
+
   let score: number
   if (use_cur_money) score = ns.getServerMoneyAvailable(target) || 1
   else score = ns.getServerMaxMoney(target) || 1
 
   score /= ns.getServerMinSecurityLevel(target) || 1
-  score /= ns.getWeakenTime(target) / 1e3
+
+  score /= (ns.getServerRequiredHackingLevel(target)+50) * 1e3
+
+  score *= ns.getServerGrowth(target)
 
   if (!no_grow) {
-    score /= Math.min(1, ns.growthAnalyze(target, 2) / 10000)
-    score /= 100
+    score /= ns.getServerGrowth(target) + 100
+    score *= 100
   }
 
   if (hack_chance) {
     score *= ns.hackAnalyzeChance(target)
   }
 
-  return score/500
+  return score*20
 }
 
 function summarize_repeat_scripts(ns: NS) {

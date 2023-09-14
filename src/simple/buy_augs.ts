@@ -1,24 +1,25 @@
 import { NS } from '@ns'
-import { hgw_continuous_best_target } from 'singularity/start_after_reset'
-import { log, run_write_read } from '/helpers/utils'
-import { hack_most_money } from 'singularity/init_bitnode'
+import { log } from '/helpers/utils'
 import { Colors } from '/helpers/colors'
 
 export async function main(ns: NS) {
     ns.disableLog('ALL')
-    await hgw_continuous_best_target(ns)
+    await wait_to_install_all_augs(ns, async ()=>{
+    }, ns.args[0].toString())
+}
 
-    log(ns,'Wait to install augments from CyberSec')
+export async function wait_to_install_all_augs(ns: NS, waiting_callback: () => Promise<void>, faction: string){
+    log(ns,'Wait to install augments from '+ Colors.highlight(faction))
     while (
         // While there are augs remaining to be bought
-        ns.singularity.getAugmentationsFromFaction('CyberSec')
+        ns.singularity.getAugmentationsFromFaction(faction)
         .filter(a=>!ns.singularity.getOwnedAugmentations(true).includes(a))
         .length > 0
     ) {
         let owned_augs = ns.singularity.getOwnedAugmentations(true)
         
         // Filter out augs we own or with unmet prereqs and sort descending by price
-        let augs_to_get = ns.singularity.getAugmentationsFromFaction('CyberSec')
+        let augs_to_get = ns.singularity.getAugmentationsFromFaction(faction)
         .filter(a=>!owned_augs.includes(a))
         .filter(a=>{ 
             let prereqs = ns.singularity.getAugmentationPrereq(a)
@@ -35,32 +36,19 @@ export async function main(ns: NS) {
 
         // Buy aug if possible
         if (
-            ns.singularity.getAugmentationRepReq(aug_to_get) < ns.singularity.getFactionRep('CyberSec') &&
+            ns.singularity.getAugmentationRepReq(aug_to_get) < ns.singularity.getFactionRep(faction) &&
             ns.singularity.getAugmentationPrice(aug_to_get) < ns.getPlayer().money
         ) {
-            ns.singularity.purchaseAugmentation('CyberSec', aug_to_get)
+            ns.singularity.purchaseAugmentation(faction, aug_to_get)
             log(ns, 'Bought ' + Colors.good(aug_to_get) + ' for ' + Colors.highlight(ns.formatNumber(ns.singularity.getAugmentationPrice(aug_to_get))))
             continue
         }
-        await hgw_continuous_best_target(ns, 0.85)
+        await waiting_callback()
         await ns.sleep(250)
     }
-    
+
     // Buy as many NeuroFlux Governors as we can 
     let nfgLevels = 0
-    while (ns.singularity.purchaseAugmentation('CyberSec', 'NeuroFlux Governor')) nfgLevels++
+    while (ns.singularity.purchaseAugmentation(faction, 'NeuroFlux Governor')) nfgLevels++
     log(ns, 'Bought ' + Colors.good(nfgLevels.toString()??'ERROR') + ' levels of the ' + Colors.highlight('NeuroFlux Governor'))
-
-    // Upgrade home RAM with remaining money
-    while (ns.getServerMaxRam('home') < 2**8) 
-    {
-        let predicate = await run_write_read(ns, 'simple/upg_home_ram.js', 1)
-        if (predicate === 'true') break
-
-        await hgw_continuous_best_target(ns)
-    }
-
-    // Install augments and start singularity/start_after_reset.js
-    ns.singularity.installAugmentations('singularity/start_after_reset.js')
-
 }

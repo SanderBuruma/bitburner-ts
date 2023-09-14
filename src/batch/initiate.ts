@@ -10,7 +10,6 @@ let target: string
 export async function main(ns: NS) {
   ns.disableLog('ALL')
   let exploit_start_time
-  let start = Date.now()
   
   target = ns.args[0].toString() ?? 'n00dles'
 
@@ -49,7 +48,7 @@ export async function main(ns: NS) {
       await ns.sleep(1e3)
     if (runmode === 'analyze') {
 
-      if (ns.getServerSecurityLevel(target) > ns.getServerMinSecurityLevel(target) * 1.2) {
+      if (ns.getServerSecurityLevel(target) > ns.getServerMinSecurityLevel(target)) {
         runmode = 'weaken'
       } else if (ns.getServerMaxMoney(target) > ns.getServerMoneyAvailable(target) * 1.2) {
         runmode = 'grow'
@@ -58,10 +57,8 @@ export async function main(ns: NS) {
       }
     } else if (runmode === 'weaken') {
 
-      let own_servers = rooted_servers(ns)
-
       let secDifference = ns.getServerSecurityLevel(target) - ns.getServerMinSecurityLevel(target)
-      let maxThreads = Math.floor(secDifference / .05)
+      let maxThreads = Math.max(1, Math.floor(secDifference / .05 + 1))
       run_script(ns, 'simple/weaken.js', maxThreads, target)
 
       sleep_time = Math.ceil(((ns.getWeakenTime(target) + 500) || 1000) / 1000)
@@ -69,19 +66,22 @@ export async function main(ns: NS) {
       runmode = 'analyze'
     } else if (runmode === 'grow') {
 
-      let own_servers = rooted_servers(ns)
-
-      let maxActualRatio = ns.getServerMaxMoney(target) / ns.getServerMoneyAvailable(target)
-      let maxThreads = Math.floor(
+      let grow_threads = Math.ceil(
         ns.growthAnalyze(
           target,
-          Math.min(5, maxActualRatio)
+          2
         )
       )
-      ns.print('maxThreads: ' + maxThreads)
-      run_script(ns, 'simple/grow.js', maxThreads, target)
+      ns.print('maxThreads: ' + grow_threads)
+      let av_ram = total_available_ram(ns, 2)
+      for (let i = 0; i < Math.log2(ns.getServerMaxMoney(target) / ns.getServerMoneyAvailable(target)); i++){
+        if (av_ram < grow_threads * 2.2) break
+        run_script(ns, 'simple/grow.js', Math.floor(grow_threads), target)
+        run_script(ns, 'simple/weaken.js', Math.ceil(grow_threads/8), target)
+        av_ram -= grow_threads * 2.2
+      }
 
-      sleep_time = Math.ceil(((ns.getGrowTime(target) + 500) || 1000) / 1000)
+      sleep_time = Math.ceil(((ns.getWeakenTime(target) + 500) || 1000) / 1000)
       ns.print('grow phase - sleep time: ' + sleep_time + ' seconds')
 
       runmode = 'analyze'
@@ -107,42 +107,12 @@ export async function main(ns: NS) {
 
       exploit_start_time = Date.now()
       while (totalThreads * 1.85 < total_available_ram(ns)) {
+        exploitTiming = ns.getWeakenTime(target) / timingFactor
         await ns.sleep(0)
-        let hosts = rooted_servers(ns)
-          .sort((a, b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a))
-          .filter(s => ns.getScriptRam('batch/once.js') + ns.getServerUsedRam(s) < ns.getServerMaxRam(s))
-        let host = hosts[0]
-        if (host) {
-          ns.print({msg:"Executing batch/once.js", host, date:Math.floor((Date.now()-start)/1e3)})
-          if (!run_script(ns, 'batch/once.js', 1, target, multiplier.toString(), timingLeniency.toString())) {
-            ns.tprintf(JSON.stringify({
-              msg: Colors.bad("Error: ") + "unknown reason",
-              target,
-              multiplier,
-              host,
-              totalThreads,
-              growthThreads,
-              hackThreads,
-              weakenThreads,
-              total_available_ram: total_available_ram(ns)
-            }))
-            return
-          }
-        } else {
-          ns.tprintf(JSON.stringify({
-            msg: "Error: not enough hosts with enough RAM: " + ns.formatRam(ns.getScriptRam('batch/once.js')),
-            target, 
-            multiplier,
-            host: ns.getHostname(),
-            totalThreads,
-            growthThreads,
-            hackThreads,
-            weakenThreads,
-            total_available_ram: total_available_ram(ns)
-          }))
-        }
 
-        while (exploit_start_time + exploitTiming > Date.now()) await ns.sleep(0)
+        run_script(ns, 'batch/once.js', 1, target, multiplier.toString(), timingLeniency.toString())
+
+        while (exploit_start_time + exploitTiming > Date.now()) await ns.sleep(1)
         if (!adjust_exploit_timing(ns)) {
           ns.tprintf(JSON.stringify({ msg: "Exploit timing became too small, terminating" }))
           return
@@ -157,7 +127,7 @@ export async function main(ns: NS) {
       throw new Error('Runmode not found: ' + runmode);
     }
 
-    await ns.sleep((sleep_time || 1) * 1000)
+    await ns.sleep((sleep_time || 1) * 1e3)
   }
 }
 
@@ -165,7 +135,7 @@ function adjust_exploit_timing(ns: NS) {
   weaken_time2 = ns.getWeakenTime(target)
   exploitTiming = weaken_time2 / timingFactor
 
-  if (exploitTiming <= 100) {
+  if (exploitTiming <= 1e3) {
     return false
   } else {
     return true

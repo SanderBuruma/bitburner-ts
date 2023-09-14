@@ -3,9 +3,11 @@ import { Colors } from 'helpers/colors'
 import { log } from 'helpers/utils.js'
 
 export async function main(ns: NS) {
-  ns.tprint('Av  RAM: ' + ns.formatRam(total_available_ram(ns, 0)))
-  ns.tprint('Max RAM: ' + ns.formatRam(total_max_ram(ns)))
-  ns.tprint('Total $: ' + ns.formatRam(total_money(ns)))
+  const av_ram = total_available_ram(ns, 0)
+  const max_ram = total_max_ram(ns)
+  ns.tprintf('Av  RAM: ' + Colors.highlight(ns.formatRam(av_ram)) + ' ( ' +ns.formatPercent(av_ram/max_ram)+ '% )')
+  ns.tprintf('Max RAM: ' + Colors.highlight(ns.formatRam(max_ram)))
+  ns.tprintf('Total $: ' + Colors.highlight(ns.formatNumber(total_money(ns))))
 }
 
 export function scan_all(ns: NS) {
@@ -84,7 +86,7 @@ export function run_script(ns: NS, scriptName: string, threads: number = 1, ...a
     )
   }
 
-  // run on single server if possible and return PID if possible
+  // run on single server if possible and return PID
   if (threads == 1 || ram_requirement <= get_server_available_ram(ns, servers[0]))
   {
     for (let server of servers) {
@@ -123,10 +125,10 @@ export function run_script(ns: NS, scriptName: string, threads: number = 1, ...a
       )
     }
     threads -= threads_to_use
-    if (threads <= 0) break 
+    if (threads <= 0) return 1 
   }
 
-  return 0
+  return -1
 }
 
 export function run_script_with_fraction_threads(ns: NS, filename: string, threads_fraction: number = 1, ...aargs: string[]) {

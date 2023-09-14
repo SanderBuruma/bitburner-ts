@@ -1,27 +1,33 @@
 import { NS } from '@ns'
-import { get_server_available_ram, run_script } from 'helpers/servers.js'
+import { get_server_available_ram, rooted_servers, run_script } from 'helpers/servers.js'
+import { Colors } from 'helpers/colors.js'
 
 export async function main(ns: NS) {
   let f: string = ns.args[0].toString() || 'servers'
   let target: string = ns.args[1]?.toString() || 'n00dles'
 
   if (f == 'target_analyze') {
-    ns.tprint("target_analyze")
+    ns.tprintf("target_analyze")
     await target_analyze(ns, target)
   } else if (f == 'net_worth') {
     ns.tprintf("net_worth: "+net_worth(ns))
   } else if (f == 'gthreads') {
-    let result =  hack_grow_weaken_ratios(ns, ns.args[1]?.toString())
-    ns.tprint(JSON.stringify(result, null, 2))
+    let result = hack_grow_weaken_ratios(ns, ns.args[1]?.toString())
+    ns.printf(JSON.stringify(result, null, 2))
+  } else if (f == 'summarize_scripts') {
+    let results = summarize_scripts(ns)
+    for (let result of results)
+    {
+      ns.tprintf('%s uses %s threads', Colors.highlight(result.name_args.padEnd(60)), Colors.highlight(ns.formatNumber(result.threads, 0)))
+    }
   } else {
     throw new Error('Variable f doesn\'t call for a valid value')
   }
 }
 
 /** @description calculates how many continuous grow and hack threads need to run to counter 1 hack thread */
-export function hack_grow_weaken_ratios(ns: NS, target: string = 'foodnstuff') {
+export function hack_grow_weaken_ratios(ns: NS, target: string = 'foodnstuff', multiplier = 1.25) {
   if (!target) throw new Error('No target selected')
-  let multiplier = 1.25
   let grow_threads = ns.growthAnalyze(target, multiplier)
   let fraction = 1-1/multiplier
   let hack_threads = ns.hackAnalyzeThreads(target, ns.getServerMoneyAvailable(target) * fraction)
@@ -34,12 +40,12 @@ export function hack_grow_weaken_ratios(ns: NS, target: string = 'foodnstuff') {
 
 /** @description gives weaken time, max and current money, minsec, sec, hack req */
 export function target_analyze(ns: NS, target: string) {
-  ns.tprint('Target wTime: \t ' + ns.formatNumber(ns.getWeakenTime(target)/1e3))
-  ns.tprint('Target max money:\t ' + ns.formatNumber(ns.getServerMaxMoney(target)))
-  ns.tprint('Target cur money:\t ' + ns.formatNumber(ns.getServerMoneyAvailable(target)))
-  ns.tprint('Target minsec:\t ' + ns.getServerMinSecurityLevel(target))
-  ns.tprint('Target sec:   \t ' + ns.getServerSecurityLevel(target))
-  ns.tprint('Target hack req:\t ' + ns.getServerRequiredHackingLevel(target))
+  ns.tprintf('Target wTime    :' + Colors.highlight(ns.formatNumber(ns.getWeakenTime(target)/1e3)))
+  ns.tprintf('Target max money:' + Colors.highlight(ns.formatNumber(ns.getServerMaxMoney(target))))
+  ns.tprintf('Target cur money:' + Colors.highlight(ns.formatNumber(ns.getServerMoneyAvailable(target))))
+  ns.tprintf('Target minsec   :' + Colors.highlight(ns.getServerMinSecurityLevel(target).toString()))
+  ns.tprintf('Target sec      :' + Colors.highlight(ns.getServerSecurityLevel(target).toString()))
+  ns.tprintf('Target hack req :' + Colors.highlight(ns.getServerRequiredHackingLevel(target).toString()))
 }
 
 let print_to_terminal = true
@@ -111,13 +117,43 @@ export async function run_write_read(ns: NS, filename: string, threads: number, 
 }
 
 /** @description waits for the predicate to become true. The timeout should be longer than how long the predicate is expected to take at any point
- * @param {() => boolean} should return a boolean value which will release the await when true
- * @param {number} timeout how long (ms) to wait before throwing a timeout error
+ * @param {() => boolean} predicate return a boolean value which will release the await when true
+ * @param {number} timeout how long (ms) to wait before throwing a timeout error, default = Infinity
 */
-export async function await_predicate(ns: NS, predicate: () => boolean, timeout: number = 1000) {
+export async function await_predicate(ns: NS, predicate: () => boolean, timeout: number = Infinity) {
   let init_time = Date.now()
   while (!predicate() && init_time + timeout > Date.now()) await ns.sleep(5)
   if (init_time + timeout <= Date.now()) {
-    throw new Error('Timed out in ' + await_predicate.name + ' predicate: ' + predicate.toString() + '\nPerhaps the timeout was too short at ' + timeout)
+    throw new Error('Timed out in ' + await_predicate.name + ' predicate: ' + predicate.toString() + '\nPerhaps the timeout was too short at ' + ns.formatNumber(timeout/1e3))
   }
+}
+
+export async function await_predicate_then_do_callback(ns: NS, predicate: () => boolean, callback: () => Promise<void>, timeout: number = Infinity) {
+  await await_predicate(ns, predicate, timeout)
+  await callback()
+}
+
+function summarize_scripts(ns: NS) {
+  let repeat_scripts = rooted_servers(ns)
+  .map(server=>ns.ps(server))
+  .reduce((a,c)=>a.concat(c), [])
+  .sort()
+
+  let targets_plus_args = repeat_scripts.map(script=>{
+    return {
+      name_args: script.filename + " " + script.args.join(', '),
+      threads: script.threads
+    }
+  })
+  let ar: {name_args: string, threads: number}[] = []
+  for (let tpa of targets_plus_args) {
+    if (ar.filter(x=>x.name_args == tpa.name_args).length>0) {
+      let index = ar.findIndex(x=>x.name_args === tpa.name_args)
+      ar[index].threads += tpa.threads
+    } else {
+      ar.push(tpa)
+    }
+  }
+  ar = ar.sort((a,b)=>a.threads - b.threads)
+  return ar
 }
