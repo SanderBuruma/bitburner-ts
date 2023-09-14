@@ -18,11 +18,11 @@ export async function main(ns: NS) {
 
   let multiplier = parseFloat(ns.args[2].toString() || '2')
   if (multiplier > 2) {
-    ns.tprintf(Colors.warning()+'Multiplier with value ' + multiplier + ' is too high, should be less than or equal to 2, adjusting...')
+    ns.tprintf(Colors.Warning()+'Multiplier with value ' + multiplier + ' is too high, should be less than or equal to 2, adjusting...')
     multiplier = 2
   }
   if (multiplier <= 1) {
-    ns.tprintf(Colors.warning()+'Multiplier with value ' + multiplier + ' is too low, should be greater than 1, adjusting...')
+    ns.tprintf(Colors.Warning()+'Multiplier with value ' + multiplier + ' is too low, should be greater than 1, adjusting...')
     multiplier = 1.001
   }
 

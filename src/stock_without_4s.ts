@@ -14,43 +14,43 @@ export async function main(ns: NS) {
     ns.atExit(()=>{
         ns.tprintf('Selling all stocks at script exit')
         for (let corp of corporations) {
-            if (corp.ownedStocks > 0)
+            if (corp.OwnedStocks > 0)
             {
-                corp.sell()
+                corp.Sell()
             }
         }
     })
     while (true) {
         // Update corps
         for (let corporation of corporations) {
-            corporation.update()
+            corporation.Update()
         }
 
         // Log stats
-        for (let corporation of corporations.sort((a,b)=>b.upTicks - a.upTicks)) {
-            if (corporation.upTicks >= 13) {
-                if (corporation.lastTickWasUp) up_tick_count++
+        for (let corporation of corporations.sort((a,b)=>b.UpTicks - a.UpTicks)) {
+            if (corporation.UpTicks >= 13) {
+                if (corporation.LastTickWasUp) up_tick_count++
                 else down_tick_count++
             }
         }
 
         // Sell stocks with downticks > 11
         let corps_to_sell = corporations
-        .filter(x=>x.downTicks > 11)
-        .filter(x=>x.ownedStocks > 0)
+        .filter(x=>x.DownTicks > 11)
+        .filter(x=>x.OwnedStocks > 0)
         for (let corp of corps_to_sell)
         {
-            corp.sell()
+            corp.Sell()
         }
         
         // Buy stocks with upticks > 14
         let corps_to_buy = corporations
-        .filter(x=>x.upTicks > 14)
-        .filter(x=>x.ownedStocks < x.totalStocks)
+        .filter(x=>x.UpTicks > 14)
+        .filter(x=>x.OwnedStocks < x.TotalStocks)
         for (let corp of corps_to_buy)
         {
             if (ns.getPlayer().money > 2e9) {
-                corp.buy(Math.floor(Math.max(1e9, ns.getPlayer().money / 8)/corp.askPrice))
+                corp.Buy(Math.floor(Math.max(1e9, ns.getPlayer().money / 8)/corp.AskPrice))
             } else {
                 break
             }

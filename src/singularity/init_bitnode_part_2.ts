@@ -39,7 +39,7 @@ export async function main(ns: NS) {
             ns.singularity.getAugmentationPrice(aug_to_get) < ns.getPlayer().money
         ) {
             ns.singularity.purchaseAugmentation('CyberSec', aug_to_get)
-            log(ns, 'Bought ' + Colors.good(aug_to_get) + ' for ' + Colors.highlight(ns.formatNumber(ns.singularity.getAugmentationPrice(aug_to_get))))
+            log(ns, 'Bought ' + Colors.Good(aug_to_get) + ' for ' + Colors.Highlight(ns.formatNumber(ns.singularity.getAugmentationPrice(aug_to_get))))
             continue
         }
         await hgw_continuous_best_target(ns, 0.85)
@@ -49,7 +49,7 @@ export async function main(ns: NS) {
     // Buy as many NeuroFlux Governors as we can 
     let nfgLevels = 0
     while (ns.singularity.purchaseAugmentation('CyberSec', 'NeuroFlux Governor')) nfgLevels++
-    log(ns, 'Bought ' + Colors.good(nfgLevels.toString()??'ERROR') + ' levels of the ' + Colors.highlight('NeuroFlux Governor'))
+    log(ns, 'Bought ' + Colors.Good(nfgLevels.toString()??'ERROR') + ' levels of the ' + Colors.Highlight('NeuroFlux Governor'))
 
     // Upgrade home RAM with remaining money
     while (ns.getServerMaxRam('home') < 2**8) 

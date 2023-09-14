@@ -26,7 +26,7 @@ export async function main(ns: NS) {
     }
   }
   if (!next_faction_with_augs) throw new Error('Could not select a faction to get augmentations from')
-  log(ns, 'Selected ' + Colors.highlight(next_faction_with_augs) + ' as the next faction to get augs from')
+  log(ns, 'Selected ' + Colors.Highlight(next_faction_with_augs) + ' as the next faction to get augs from')
 
   runmode = initAfterReset.name
   set_log_settings(ns, true, true, false)
@@ -393,7 +393,7 @@ export async function hgw_continuous_best_target(ns: NS, ram_fraction = .9) {
     return
   }
 
-  log(ns, 'Changing the ' + Colors.highlight(hgw_continuous_best_target.name) + ' target to ' + Colors.good(target.name))
+  log(ns, 'Changing the ' + Colors.Highlight(hgw_continuous_best_target.name) + ' target to ' + Colors.Good(target.name))
 
   // Kill the old continuous cycle
   let y = rooted_servers(ns).reduce((a: number[],c)=>{

@@ -29,7 +29,7 @@ export async function main(ns: NS) {
   })
 
   if (count > 0) {
-    log(ns, 'Nuked ' + Colors.good(count.toString()) + ' servers! They had up to ' + Colors.good(ports_we_can_hack(ns).toString()) + ' ports')
+    log(ns, 'Nuked ' + Colors.Good(count.toString()) + ' servers! They had up to ' + Colors.Good(ports_we_can_hack(ns).toString()) + ' ports')
   }
 }
 

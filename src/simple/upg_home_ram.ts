@@ -7,7 +7,7 @@ export async function main(ns: NS) {
   let player_money = ns.getPlayer().money
   if (cost < player_money) {
     if ( ns.singularity.upgradeHomeRam()) {
-      log(ns, 'Upgraded home RAM for ' + Colors.highlight(ns.formatNumber(cost)))
+      log(ns, 'Upgraded home RAM for ' + Colors.Highlight(ns.formatNumber(cost)))
       await write_2_port(ns, 'true')
     } else {
       log(ns, JSON.stringify({msg:"Failure to upgrade home RAM", player_money, cost}, null, 2))

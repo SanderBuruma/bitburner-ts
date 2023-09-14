@@ -19,36 +19,36 @@ export async function main(ns: NS) {
   if (timingLeniency <= 10) throw new Error("The timingLeniency argument must be greater than 10")
   if (timingLeniency >= 1500) throw new Error("The timingLeniency argument must be less than or equal to 1500")
   
-  let growthThreads = Math.ceil(ns.growthAnalyze(target_server.name, multiplier))
+  let growthThreads = Math.ceil(ns.growthAnalyze(target_server.Name, multiplier))
   let x = 1 - 1/multiplier
   let hackThreads = Math.floor(ns.hackAnalyzeThreads(
-    target_server.name, 
-    x * ns.getServerMoneyAvailable(target_server.name) / 1.1
+    target_server.Name, 
+    x * ns.getServerMoneyAvailable(target_server.Name) / 1.1
   ))
   let weakenThreads = Math.ceil(growthThreads / 10 + hackThreads / 20)
   ns.print({weakenThreads, growthThreads, hackThreads})
 
   // Start the weaken script
-  while (!target_server.atMinSec) await ns.sleep(1)
-  let wTime = ns.getWeakenTime(target_server.name)
-  if (!run_script(ns, 'simple/weaken.js', weakenThreads, target_server.name)) return
-  let weakenFinishTime = ((Date.now() + ns.getWeakenTime(target_server.name))/1e3) % 100
+  while (!target_server.AtMinSec) await ns.sleep(1)
+  let wTime = ns.getWeakenTime(target_server.Name)
+  if (!run_script(ns, 'simple/weaken.js', weakenThreads, target_server.Name)) return
+  let weakenFinishTime = ((Date.now() + ns.getWeakenTime(target_server.Name))/1e3) % 100
   ns.print({msg:'weakening', dn: Date.now() - now})
 
   // Wait to start growth script
-  await ns.sleep(ns.getWeakenTime(target_server.name) - ns.getGrowTime(target_server.name) - 3*timingLeniency)
-  while ((Date.now() - now) < (wTime - ns.getGrowTime(target_server.name) - 3*timingLeniency)) await ns.sleep(1)
-  while (!target_server.atMinSec) await ns.sleep(1)
-  if (!run_script(ns, 'simple/grow.js', growthThreads, target_server.name)) return
-  let growFinishTime = ((Date.now() + ns.getGrowTime(target_server.name))/1e3) % 100
+  await ns.sleep(ns.getWeakenTime(target_server.Name) - ns.getGrowTime(target_server.Name) - 3*timingLeniency)
+  while ((Date.now() - now) < (wTime - ns.getGrowTime(target_server.Name) - 3*timingLeniency)) await ns.sleep(1)
+  while (!target_server.AtMinSec) await ns.sleep(1)
+  if (!run_script(ns, 'simple/grow.js', growthThreads, target_server.Name)) return
+  let growFinishTime = ((Date.now() + ns.getGrowTime(target_server.Name))/1e3) % 100
   ns.print({msg:'growing', dn: Date.now() - now})
 
   // Wait to start hack script
-  await ns.sleep(ns.getGrowTime(target_server.name) - ns.getHackTime(target_server.name) - 5*timingLeniency * 2)
-  while ((Date.now() - now) < (wTime - ns.getHackTime(target_server.name) - 5*timingLeniency * 2)) await ns.sleep(1)
-  while (!target_server.atMinSec) await ns.sleep(1)
-  if (!run_script(ns, 'simple/hack.js', hackThreads, target_server.name)) return
-  let hackFinishTime = ((Date.now() + ns.getHackTime(target_server.name))/1e3) % 100
+  await ns.sleep(ns.getGrowTime(target_server.Name) - ns.getHackTime(target_server.Name) - 5*timingLeniency * 2)
+  while ((Date.now() - now) < (wTime - ns.getHackTime(target_server.Name) - 5*timingLeniency * 2)) await ns.sleep(1)
+  while (!target_server.AtMinSec) await ns.sleep(1)
+  if (!run_script(ns, 'simple/hack.js', hackThreads, target_server.Name)) return
+  let hackFinishTime = ((Date.now() + ns.getHackTime(target_server.Name))/1e3) % 100
   ns.print({msg:'hacking', dn: Date.now() - now})
 
   if (hackFinishTime >= growFinishTime) ns.tprint({msg:"hack >= growTime", hackFinishTime,growFinishTime})

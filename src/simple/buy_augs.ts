@@ -9,7 +9,7 @@ export async function main(ns: NS) {
 }
 
 export async function wait_to_install_all_augs(ns: NS, waiting_callback: () => Promise<void>, faction: string){
-    log(ns,'Wait to install augments from '+ Colors.highlight(faction))
+    log(ns,'Wait to install augments from '+ Colors.Highlight(faction))
     while (
         // While there are augs remaining to be bought
         ns.singularity.getAugmentationsFromFaction(faction)
@@ -40,7 +40,7 @@ export async function wait_to_install_all_augs(ns: NS, waiting_callback: () => P
             ns.singularity.getAugmentationPrice(aug_to_get) < ns.getPlayer().money
         ) {
             ns.singularity.purchaseAugmentation(faction, aug_to_get)
-            log(ns, 'Bought ' + Colors.good(aug_to_get) + ' for ' + Colors.highlight(ns.formatNumber(ns.singularity.getAugmentationPrice(aug_to_get))))
+            log(ns, 'Bought ' + Colors.Good(aug_to_get) + ' for ' + Colors.Highlight(ns.formatNumber(ns.singularity.getAugmentationPrice(aug_to_get))))
             continue
         }
         await waiting_callback()
@@ -50,5 +50,5 @@ export async function wait_to_install_all_augs(ns: NS, waiting_callback: () => P
     // Buy as many NeuroFlux Governors as we can 
     let nfgLevels = 0
     while (ns.singularity.purchaseAugmentation(faction, 'NeuroFlux Governor')) nfgLevels++
-    log(ns, 'Bought ' + Colors.good(nfgLevels.toString()??'ERROR') + ' levels of the ' + Colors.highlight('NeuroFlux Governor'))
+    log(ns, 'Bought ' + Colors.Good(nfgLevels.toString()??'ERROR') + ' levels of the ' + Colors.Highlight('NeuroFlux Governor'))
 }

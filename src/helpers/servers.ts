@@ -5,9 +5,9 @@ import { log } from 'helpers/utils.js'
 export async function main(ns: NS) {
   const av_ram = total_available_ram(ns, 0)
   const max_ram = total_max_ram(ns)
-  ns.tprintf('Av  RAM: ' + Colors.highlight(ns.formatRam(av_ram)) + ' ( ' +ns.formatPercent(av_ram/max_ram)+ '% )')
-  ns.tprintf('Max RAM: ' + Colors.highlight(ns.formatRam(max_ram)))
-  ns.tprintf('Total $: ' + Colors.highlight(ns.formatNumber(total_money(ns))))
+  ns.tprintf('Av  RAM: ' + Colors.Highlight(ns.formatRam(av_ram)) + ' ( ' +ns.formatPercent(av_ram/max_ram)+ '% )')
+  ns.tprintf('Max RAM: ' + Colors.Highlight(ns.formatRam(max_ram)))
+  ns.tprintf('Total $: ' + Colors.Highlight(ns.formatNumber(total_money(ns))))
 }
 
 export function scan_all(ns: NS) {

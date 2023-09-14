@@ -53,7 +53,7 @@ export async function main(ns: NS) {
     await hgw_continuous_best_target(ns)
 
     let purchased_server_cost = ns.getPurchasedServerCost(2**8)
-    log(ns, 'Waiting to buy 8 extra servers for ' + Colors.highlight(ns.formatNumber(purchased_server_cost)) + ' each')
+    log(ns, 'Waiting to buy 8 extra servers for ' + Colors.Highlight(ns.formatNumber(purchased_server_cost)) + ' each')
     while (rooted_servers(ns).filter(x=>/^server-(?:[1-9]|1[0-9]|2[0-5])$/.test(x)).length < 8) {
         await await_predicate(ns, ()=>ns.getPlayer().money > purchased_server_cost, 60e3 * 60)
         run_script(ns, 'buyserver.js')    
@@ -77,8 +77,8 @@ export async function main(ns: NS) {
     run_script(ns, 'killall.js', 1, ns.getRunningScript()?.pid.toString() ?? '0')
     await ns.sleep(250)
 
-    log(ns, 'Starting next version of script ' + Colors.highlight('singularity/init_bitnode_part_2.js'))
-    ns.tprintf('%s finished running, spawning next script', Colors.highlight(ns.getRunningScript()?.filename ?? 'ERROR'))
+    log(ns, 'Starting next version of script ' + Colors.Highlight('singularity/init_bitnode_part_2.js'))
+    ns.tprintf('%s finished running, spawning next script', Colors.Highlight(ns.getRunningScript()?.filename ?? 'ERROR'))
     ns.spawn('singularity/init_bitnode_part_2.js')
 }
 
@@ -91,7 +91,7 @@ export async function hack_most_money(ns: NS) {
 
 /** Wait until we have enough money to buy a program before buying it */
 export async function wait_and_buy_program(ns: NS, money: number, program: string, no_grow: boolean = true) {
-    log(ns, 'Waiting to buy program ' + Colors.highlight(program))
+    log(ns, 'Waiting to buy program ' + Colors.Highlight(program))
     while (ns.getPlayer().money < money) {
         if (no_grow) {
             await hack_most_money(ns)

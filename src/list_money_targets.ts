@@ -14,14 +14,14 @@ export async function main(ns: NS) {
   if (method === 'lmt') {
     let servers = lmt(ns, cur_money, no_grow, hack_chance)
     for (let s of servers) {
-      const atMinSec = new Server(ns, s.name).atMinSec.toString()
+      const atMinSec = new Server(ns, s.name).AtMinSec.toString()
       const paddedServerName = s.name.padEnd(16, ' ');
       ns.tprintf(
         'server: %s score: %s hackReq: %s atMinSec: %s', 
-        Colors.highlight(s.name.padEnd(16, ' ')),
-        Colors.highlight(ns.formatNumber(s.score).padEnd(8, " ")),
-        Colors.highlight(s.hackingLv.toString().padEnd(5, " ")),
-        atMinSec==="true" ? Colors.good(atMinSec) : Colors.bad(atMinSec)
+        Colors.Highlight(s.name.padEnd(16, ' ')),
+        Colors.Highlight(ns.formatNumber(s.score).padEnd(8, " ")),
+        Colors.Highlight(s.hackingLv.toString().padEnd(5, " ")),
+        atMinSec==="true" ? Colors.Good(atMinSec) : Colors.Bad(atMinSec)
       )
     }
   } else if (method === 'lmt_to_ports') {

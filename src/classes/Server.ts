@@ -9,6 +9,7 @@ export class Server {
     private _growthParam: number
     private _hackingReq: number
     private _portsReq: number
+
     constructor(ns: NS, name: string) {
         this.ns = ns
         this._name = name
@@ -16,48 +17,37 @@ export class Server {
         this._maxMoney = ns.getServerMaxMoney(name)
         this._minSec = ns.getServerMinSecurityLevel(name)
         this._growthParam = ns.getServerGrowth(name)
-        this._portsReq = this.ns.getServerNumPortsRequired(this.name)
-        this._hackingReq = this.ns.getServerRequiredHackingLevel(this.name)
+        this._portsReq = this.ns.getServerNumPortsRequired(this.Name)
+        this._hackingReq = this.ns.getServerRequiredHackingLevel(this.Name)
     }
-    public get name() {
-        return this._name
-    }
-    public get availableRam() {
-        return this._maxRam - this.usedRam
-    }
-    public get usedRam() {
-        return this.ns.getServerUsedRam(this.name)
-    }
-    public get maxRam() {
-        return this._maxRam
-    }
-    public get files() {
-        return this.ns.ls(this.name)
-    }
-    public get money() {
-        return this.ns.getServerMoneyAvailable(this.name)
-    }
-    public get maxMoney() {
-        return this._maxMoney
-    }
-    public get growthParam() {
-        return this._growthParam
-    }
-    public get sec() {
-        return this.ns.getServerSecurityLevel(this.name)
-    }
-    public get minSec() {
-        return this._minSec
-    }
-    public get portsReq() {
-        return this._portsReq
-    }
-    public get hackingReq() {
-        return this._hackingReq
-    }
-    /** Whether or not the server is at minimum security */
-    public get atMinSec(): boolean {
-        return this._minSec === this.sec
-    }
-    
+
+    public get Name() { return this._name }
+
+    public get AvailableRam() { return this._maxRam - this.UsedRam }
+    public get UsedRam() { return this.ns.getServerUsedRam(this.Name) }
+    public get MaxRam() { return this._maxRam }
+
+    public get Files() { return this.ns.ls(this.Name) }
+
+    public get Money() { return this.ns.getServerMoneyAvailable(this.Name) }
+    public get MaxMoney() { return this._maxMoney }
+    public get GrowthParmam() { return this._growthParam }
+
+    public get Sec() { return this.ns.getServerSecurityLevel(this.Name) }
+    public get MinSec() { return this._minSec }
+    public get AtMinSec(): boolean { return this._minSec === this.Sec }
+
+    public get PortsRequirement() { return this._portsReq }
+    public get HackingRequirement() { return this._hackingReq }
+
+    /** for 1 thread return how much of the money amount we can get */
+    public get HackingFractionPerExecution() { return this.ns.hackAnalyze(this.Name) }
+    public get GrowsPerHack() { return this.ns.growthAnalyze(this.Name, 1/(1-this.HackingFractionPerExecution))}
+    public get WeakensPerGrowHack() { return this.GrowsPerHack/.8/12.5 + 4/25}
+
+    public get HackTime(): number { return this.ns.getHackTime(this.Name) }
+    public get GrowTime(): number { return this.ns.getGrowTime(this.Name) }
+    public get WeakenTime(): number { return this.ns.getWeakenTime(this.Name) }
+   
+    public get RunningScripts() { return this.ns.ps(this.Name)}
 }

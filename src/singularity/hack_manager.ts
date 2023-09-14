@@ -27,7 +27,7 @@ export async function main(ns: NS) {
     set_log_settings(ns, true, false)
 
     let que: QueItem[] = []
-    if (ns.args.length !== 3) log(ns, Colors.warning()+"We need 3 parameters, target, timingFactor and multiplier. Selecting defaults instead for the missing parameters")
+    if (ns.args.length !== 3) log(ns, Colors.Warning()+"We need 3 parameters, target, timingFactor and multiplier. Selecting defaults instead for the missing parameters")
     let target = ns.args[0]?.toString() ?? "foodnstuff"
     let timingFactor = parseFloat(ns.args[1]?.toString() ?? "1.54")
     let multiplier = parseFloat(ns.args[2]?.toString() ?? "1.20")
@@ -49,18 +49,18 @@ export async function main(ns: NS) {
             let hgw_rs = hack_grow_weaken_ratios(ns, target, multiplier)
             let weaken_threads = Math.ceil(hgw_rs.hack_threads / 16 + hgw_rs.grow_threads / 8)
             let server = new Server(ns, target)
-            if (!server.atMinSec) {
-                weaken_threads = Math.ceil(weaken_threads + (server.sec-server.minSec)/.05)
+            if (!server.AtMinSec) {
+                weaken_threads = Math.ceil(weaken_threads + (server.Sec-server.MinSec)/.05)
             }
             nextWeaken = Math.floor(Date.now() + ns.getWeakenTime(target) / timingFactor)
             run_script(ns, 'simple/weaken.js', weaken_threads, target) 
-            if (server.atMinSec) que.push(new QueItem(ns, target, "w", weaken_threads, multiplier))
+            if (server.AtMinSec) que.push(new QueItem(ns, target, "w", weaken_threads, multiplier))
             await ns.sleep(1)
         }
 
         // Launch grow scripts if due
         const next_weaken = weaken_que[0]
-        if (next_weaken && next_weaken.finishTime - 50 - ns.getGrowTime(target) < Date.now() && new Server(ns, next_weaken.target).atMinSec) 
+        if (next_weaken && next_weaken.finishTime - 50 - ns.getGrowTime(target) < Date.now() && new Server(ns, next_weaken.target).AtMinSec) 
         {
             // Remove old item
             let index = que.findIndex(x=>x.finishTime === next_weaken.finishTime && x.type === next_weaken.type)
@@ -77,7 +77,7 @@ export async function main(ns: NS) {
 
         // Launch hack scripts if due
         const next_grow = grow_que[0]
-        if (next_grow && next_grow.finishTime - 50 - ns.getHackTime(target) < Date.now() && new Server(ns, next_grow.target).atMinSec) 
+        if (next_grow && next_grow.finishTime - 50 - ns.getHackTime(target) < Date.now() && new Server(ns, next_grow.target).AtMinSec) 
         {
             // Remove old item
             let index = que.findIndex(x=>x.finishTime === next_grow.finishTime && x.type === next_grow.type)

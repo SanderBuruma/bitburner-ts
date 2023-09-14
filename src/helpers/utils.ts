@@ -18,7 +18,7 @@ export async function main(ns: NS) {
     let results = summarize_scripts(ns)
     for (let result of results)
     {
-      ns.tprintf('%s uses %s threads', Colors.highlight(result.name_args.padEnd(60)), Colors.highlight(ns.formatNumber(result.threads, 0)))
+      ns.tprintf('%s uses %s threads', Colors.Highlight(result.name_args.padEnd(60)), Colors.Highlight(ns.formatNumber(result.threads, 0)))
     }
   } else {
     throw new Error('Variable f doesn\'t call for a valid value')
@@ -40,12 +40,12 @@ export function hack_grow_weaken_ratios(ns: NS, target: string = 'foodnstuff', m
 
 /** @description gives weaken time, max and current money, minsec, sec, hack req */
 export function target_analyze(ns: NS, target: string) {
-  ns.tprintf('Target wTime    :' + Colors.highlight(ns.formatNumber(ns.getWeakenTime(target)/1e3)))
-  ns.tprintf('Target max money:' + Colors.highlight(ns.formatNumber(ns.getServerMaxMoney(target))))
-  ns.tprintf('Target cur money:' + Colors.highlight(ns.formatNumber(ns.getServerMoneyAvailable(target))))
-  ns.tprintf('Target minsec   :' + Colors.highlight(ns.getServerMinSecurityLevel(target).toString()))
-  ns.tprintf('Target sec      :' + Colors.highlight(ns.getServerSecurityLevel(target).toString()))
-  ns.tprintf('Target hack req :' + Colors.highlight(ns.getServerRequiredHackingLevel(target).toString()))
+  ns.tprintf('Target wTime    :' + Colors.Highlight(ns.formatNumber(ns.getWeakenTime(target)/1e3)))
+  ns.tprintf('Target max money:' + Colors.Highlight(ns.formatNumber(ns.getServerMaxMoney(target))))
+  ns.tprintf('Target cur money:' + Colors.Highlight(ns.formatNumber(ns.getServerMoneyAvailable(target))))
+  ns.tprintf('Target minsec   :' + Colors.Highlight(ns.getServerMinSecurityLevel(target).toString()))
+  ns.tprintf('Target sec      :' + Colors.Highlight(ns.getServerSecurityLevel(target).toString()))
+  ns.tprintf('Target hack req :' + Colors.Highlight(ns.getServerRequiredHackingLevel(target).toString()))
 }
 
 let print_to_terminal = true
