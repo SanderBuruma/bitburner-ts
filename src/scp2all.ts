@@ -7,10 +7,10 @@ export async function main(ns: NS) {
 
   for (let s of servers) {
 
-    if (s === 'home') continue
+    if (s.Name === 'home') continue
 
     let scripts = ns.ls('home').filter(x=>x.slice(-3) == ".js")
-    ns.scp(scripts, s, 'home')
+    ns.scp(scripts, s.Name, 'home')
 
   }
 }

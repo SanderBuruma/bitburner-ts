@@ -1,6 +1,7 @@
 import { NS } from '@ns'
-import { get_server_available_ram, rooted_servers, run_script } from 'helpers/servers.js'
+import { rooted_servers, run_script } from 'helpers/servers.js'
 import { Colors } from 'helpers/colors.js'
+import { Server } from '/classes/Server'
 
 export async function main(ns: NS) {
   let f: string = ns.args[0].toString() || 'servers'
@@ -105,7 +106,8 @@ export function write_to_port(ns: NS, data: object) {
  */
 export async function run_write_read(ns: NS, filename: string, threads: number, ...args: any[]) {
   // Wait for enough RAM to free up
-  await await_predicate(ns, ()=>ns.getScriptRam(filename) * threads < get_server_available_ram(ns, ns.getHostname())) 
+  let server = new Server(ns, ns.getHostname())
+  await await_predicate(ns, ()=>ns.getScriptRam(filename) * threads < server.AvailableRam) 
   
   // Execute!
   let pid = run_script(ns, filename, threads, ...args)
@@ -135,7 +137,7 @@ export async function await_predicate_then_do_callback(ns: NS, predicate: () => 
 
 function summarize_scripts(ns: NS) {
   let repeat_scripts = rooted_servers(ns)
-  .map(server=>ns.ps(server))
+  .map(server=>server.RunningScripts)
   .reduce((a,c)=>a.concat(c), [])
   .sort()
 

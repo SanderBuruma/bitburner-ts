@@ -12,17 +12,17 @@ export async function main(ns: NS) {
   let sqlExists = ns.fileExists('SQLInject.exe', 'home')
 
   let maxPorts = ports_we_can_hack(ns)
-  let allServers = nonrooted_servers(ns).filter(x=>ns.getServerNumPortsRequired(x)<=maxPorts)
+  let allServers = nonrooted_servers(ns).filter(x=>ns.getServerNumPortsRequired(x.Name)<=maxPorts)
   let nuked_something = false
   let count = 0
   allServers.forEach(s=>{
-    if (ns.getServerNumPortsRequired(s) <= maxPorts) {
-      if (bruteExists) ns.brutessh(s)
-      if (relayExists) ns.relaysmtp(s)
-      if (sqlExists) ns.sqlinject(s)
-      if (httpExists) ns.httpworm(s)
-      if (ftpExists) ns.ftpcrack(s)
-      ns.nuke(s)
+    if (s.PortsRequirement === maxPorts) {
+      if (bruteExists) ns.brutessh(s.Name)
+      if (relayExists) ns.relaysmtp(s.Name)
+      if (sqlExists) ns.sqlinject(s.Name)
+      if (httpExists) ns.httpworm(s.Name)
+      if (ftpExists) ns.ftpcrack(s.Name)
+      ns.nuke(s.Name)
       count++
       nuked_something = true
     }

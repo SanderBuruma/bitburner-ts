@@ -1,10 +1,10 @@
 import { NS, ProcessInfo } from '@ns'
-import { await_predicate, hack_grow_weaken_ratios, kill_previous, log, run_write_read, set_log_settings } from 'helpers/utils.js'
+import { await_predicate, hack_grow_weaken_ratios, kill_previous, log, set_log_settings } from 'helpers/utils.js'
 import { lmt } from 'list_money_targets.js'
 import { ports_we_can_hack } from 'hackall'
-import { total_available_ram, get_server_available_ram, nonrooted_servers, rooted_servers, run_script, total_max_ram } from 'helpers/servers'
-import { IServerResult } from 'interfaces/IServerResult.js'
+import { total_available_ram, nonrooted_servers, rooted_servers, run_script, total_max_ram } from 'helpers/servers'
 import { Colors } from 'helpers/colors'
+import { Server } from '/classes/Server'
 
 let runmode: string
 let next_faction_with_augs: string
@@ -136,7 +136,7 @@ async function work_for_faction(ns: NS, work_type='hacking') {
 
 async function upg_home_ram(ns: NS) {
   if (ns.singularity.getUpgradeHomeRamCost() * 1.5 < ns.getPlayer().money) {
-    await await_predicate(ns, ()=>ns.getScriptRam('simple/upg_home_ram.js') < get_server_available_ram(ns, 'home'))
+    await await_predicate(ns, ()=>ns.getScriptRam('simple/upg_home_ram.js') < new Server(ns,'home').AvailableRam)
     log(ns, 'Upgrading home RAM from ' + ns.formatRam(ns.getServerMaxRam('home')))
     run_script(ns, 'simple/upg_home_ram.js', 1)
   }
@@ -237,14 +237,14 @@ export async function buy_programs(ns: NS) {
 
 async function backdoor_everything(ns: NS) {
   let servers = rooted_servers(ns)
-  .filter(x=>!ns.getServer(x).backdoorInstalled)
-  .filter(x=>['CSEC', 'I.I.I.I', 'run4theh111z', 'avmnite-02h', 'The-Cave', 'w0r1d_d43m0n'].includes(x))
-  .sort((a,b)=>ns.getServerRequiredHackingLevel(a) - ns.getServerRequiredHackingLevel(b))
+  .filter(x=>!ns.getServer(x.Name).backdoorInstalled)
+  .filter(x=>['CSEC', 'I.I.I.I', 'run4theh111z', 'avmnite-02h', 'The-Cave', 'w0r1d_d43m0n'].includes(x.Name))
+  .sort((a,b)=>ns.getServerRequiredHackingLevel(a.Name) - ns.getServerRequiredHackingLevel(b.Name))
 
   for (let s of servers) {
-    let server = ns.getServer(s)
+    let server = ns.getServer(s.Name)
     if (!server.backdoorInstalled && ns.getPlayer().skills.hacking >= (server.requiredHackingSkill ?? 0)) {
-      if (!run_script(ns, 'connect.js', 1, s)) return
+      if (!run_script(ns, 'connect.js', 1, s.Name)) return
       await ns.sleep(250)
       await ns.singularity.installBackdoor()
       ns.singularity.connect('home')
@@ -258,7 +258,7 @@ async function update_batchers(ns: NS) {
   let servers = rooted_servers(ns)
   let scripts: ProcessInfo[] = []
   for (let s of servers) {
-    let s_scripts = ns.ps(s)
+    let s_scripts = s.RunningScripts
     scripts = scripts.concat(s_scripts)
   }
   scripts = scripts.filter(s=>s.filename == 'batch/initiate.js')
@@ -289,31 +289,31 @@ async function update_batchers(ns: NS) {
   
   // Start new batching script
   /** @type string[] */
-  let targets: IServerResult[]
+  let targets: Server[]
   if (servers.length < 3) return
   let current_targets = scripts
   .map(y=>y.args)
   .reduce((a,c)=>{
     return a.concat(c)
   }, [])
-  targets = lmt(ns, false, false).filter(x=>!current_targets.includes(x.name))
+  targets = lmt(ns, false, false).filter(x=>!current_targets.includes(x.Name))
   
   if (targets.length == 0) return
-  targets = targets.filter(s=>s.name != 'n00dles')
+  targets = targets.filter(s=>s.Name != 'n00dles')
   
   // Get a target which doesn't take too long to exploit
-  let target
+  let target: Server = new Server(ns, 'n00dles')
+  if (targets.length < 1) return
   while (targets.length > 0) {
-    target = targets.shift()
-    if (!target || ns.getWeakenTime(target.name) < 5e3 * 60) break
+    target = targets.shift() ?? new Server(ns, 'n00dles')
+    if (!target || ns.getWeakenTime(target.Name) < 5e3 * 60) break
   }
   // Calculate a good batch multiplier (by how much money will grow because of the grow.js script)
   let multiplier: number
   let sum_threads: number = 0
-  if (!target) return
   for (multiplier = 1.5; multiplier > 1; multiplier-=.01) {
-    let hack_threads = Math.floor((multiplier-1) / ns.hackAnalyze(target.name))
-    let grow_threads = Math.ceil(ns.growthAnalyze(target.name, multiplier))
+    let hack_threads = Math.floor((multiplier-1) / ns.hackAnalyze(target.Name))
+    let grow_threads = Math.ceil(ns.growthAnalyze(target.Name, multiplier))
     let weaken_threads = Math.ceil(hack_threads / 25 + grow_threads / 12.5)
     sum_threads = hack_threads + grow_threads + weaken_threads
     
@@ -321,7 +321,7 @@ async function update_batchers(ns: NS) {
     if (multiplier > 1) continue
     if (targets.length > 0)
     {
-      target = targets.shift()
+      target = targets.shift() ?? new Server(ns, 'n00dles')
       if (!target) return
       multiplier = 1.5
     }
@@ -332,43 +332,22 @@ async function update_batchers(ns: NS) {
   let time_factor = 1.54
   for (let tf of [1.54, 2.22, 2.86, 3.2, 5.83, 6.45, 6.86, 8.57, 11.43, 13.14, 13.55, 14.17, 16.8, 17.14, 17.78, 18.46, 19.17, 20.83, 21.54, 22.22, 22.86, 23.2, 25.83, 26.45, 26.86, 28.57, 31.43, 33.14, 33.55, 34.17, 36.8, 37.14, 37.78, 38.46, 39.17, 40.83, 41.54, 42.22, 42.86, 43.2, 45.83, 46.45, 46.86, 48.57, 51.43, 53.14, 53.55, 54.17, 56.8, 57.14, 57.78, 58.46, 59.17, 60.83, 61.54, 62.22, 62.86, 63.2, 65.83, 66.45, 66.86, 68.57, 71.43, 73.14, 73.55, 74.17, 76.8, 77.14, 77.78, 78.46, 79.17, 80.83, 81.54, 82.22, 82.86, 83.2, 85.83, 86.45, 86.86]) 
   {
-    if ((ns.getWeakenTime(target.name) / 5e2) < tf) break
+    if ((ns.getWeakenTime(target.Name) / 5e2) < tf) break
     if (sum_threads * tf * 2.5 + ns.getScriptRam('batch/once.js') * tf > av_ram) break
 
     time_factor = tf
   }
 
-  run_script(ns, 'batch/initiate.js', 1, target.name, time_factor.toString(), multiplier.toString(), '15')
-  log(ns, 'Initiating batch on ' + target.name + ' tf: ' + time_factor + ' multi: ' + multiplier)
+  run_script(ns, 'batch/initiate.js', 1, target.Name, time_factor.toString(), multiplier.toString(), '15')
+  log(ns, 'Initiating batch on ' + target.Name + ' tf: ' + time_factor + ' multi: ' + multiplier)
 }
 
-async function xrun(ns: NS, filename: string, threads = 1, ...aargs: string[]) {
-  log(ns, 'Running ' + filename + ' with threads: ' + threads)
-  let host_name = ns.getHostname()
-  let pid: number = 0
-  if (get_server_available_ram(ns, host_name) < ns.getScriptRam(filename) * threads) {
-    log(ns, host_name + ': ' + filename + ' was not able to run due to lack of RAM')
-    pid = run_script(ns, filename, threads, ...aargs)
-    await ns.sleep(50)
-    return pid
-  }
-
-  pid = run_script(ns, filename, threads, ...aargs)
-  if (!pid) {
-    log(ns, host_name + ': ' + filename + ' was not able to run due to unknown reason')
-    pid = run_script(ns, filename, threads, ...aargs)
-    await ns.sleep(50)
-    return pid
-  }
-  return 0
-}
-
-let hgw_cbt_cur_target: IServerResult
+let hgw_cbt_cur_target: Server
 export async function hgw_continuous_best_target(ns: NS, ram_fraction = .9) {
   // Gather some necesssary information
-  let targets: IServerResult[] = lmt(ns, false, false, false)
+  let targets: Server[] = lmt(ns, false, false, false)
   // hack difficulty is reasonable
-  .filter(x=>x.hackingLv*2 < ns.getPlayer().skills.hacking)
+  .filter(x=>x.HackingRequirement*2 < ns.getPlayer().skills.hacking)
   // no server has the capacity to be used to this degree
   // .filter(x=>
   // { 
@@ -378,27 +357,27 @@ export async function hgw_continuous_best_target(ns: NS, ram_fraction = .9) {
   //   return y * 4 < z
   // }) 
   if (targets.length < 1) return
-  let target = targets.shift() ?? { name: '', score: 0, hackingLv: 1_000_000}
+  let target: Server = targets.shift() ?? new Server(ns, 'n00dles')
   let a_ram = total_available_ram(ns, 2) * ram_fraction
   let max_ram = total_max_ram(ns)
-  let hgw_rs = hack_grow_weaken_ratios(ns, target.name)
+  let hgw_rs = hack_grow_weaken_ratios(ns, target.toString())
   let sum_threads_per_1_hack = hgw_rs.grow_threads_per_hack_thread + hgw_rs.weaken_threads_per_hack + 1
 
   // Check if we should NOT start a new cycle
-  let condition1 = target && hgw_cbt_cur_target?.name === target.name
+  let condition1 = target && hgw_cbt_cur_target?.Name === target.Name
   let condition2 = !!hgw_cbt_cur_target // We already have a target
-  let condition3 = (((hgw_cbt_cur_target?.score ?? 0) * 1.5) >= target.score) // The next best target isn't good enough in order for us to switch
+  let condition3 = (((hgw_cbt_cur_target?.StaticScore ?? 0) * 1.5) >= target.StaticScore) // The next best target isn't good enough in order for us to switch
   let condition4 = a_ram * 4 < max_ram // Not enough available ram is being wasted
   if (condition1 && condition2 && condition3 && condition4) {
     return
   }
 
-  log(ns, 'Changing the ' + Colors.Highlight(hgw_continuous_best_target.name) + ' target to ' + Colors.Good(target.name))
+  log(ns, 'Changing the ' + Colors.Highlight(hgw_continuous_best_target.name) + ' target to ' + Colors.Good(target.Name))
 
   // Kill the old continuous cycle
   let y = rooted_servers(ns).reduce((a: number[],c)=>{
     return a.concat(
-      ns.ps(c)
+      c.RunningScripts
       .filter(x=>/^repeat\//.test(x.filename) && !/share/.test(x.filename))
       .map(x=>x.pid)
     )
@@ -419,15 +398,15 @@ export async function hgw_continuous_best_target(ns: NS, ram_fraction = .9) {
   let grow_threads = Math.max(Math.ceil(hgw_rs_multiple * hgw_rs.grow_threads_per_hack_thread), 1)
   let weaken_threads = Math.max(Math.ceil(hgw_rs_multiple * hgw_rs.weaken_threads_per_hack), 1)
 
-  run_script(ns, 'repeat/hack.js', hack_threads, target.name)
-  run_script(ns, 'repeat/grow.js', grow_threads, target.name)
-  run_script(ns, 'repeat/weaken.js', weaken_threads, target.name)
+  run_script(ns, 'repeat/hack.js', hack_threads, target.toString())
+  run_script(ns, 'repeat/grow.js', grow_threads, target.toString())
+  run_script(ns, 'repeat/weaken.js', weaken_threads, target.toString())
 
   hgw_cbt_cur_target = target
 }
 
 async function upgrade_port_exploits(ns: NS) {
-  if (nonrooted_servers(ns).filter(s=>ns.getServerNumPortsRequired(s) < ports_we_can_hack(ns)).length > 0) {
+  if (nonrooted_servers(ns).filter(s=>s.PortsRequirement < ports_we_can_hack(ns)).length > 0) {
     run_script(ns, 'hackall.js')
     await ns.sleep(50)
     await hgw_continuous_best_target(ns)

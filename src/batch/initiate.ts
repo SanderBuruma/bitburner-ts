@@ -1,4 +1,4 @@
-import { rooted_servers, total_available_ram, get_server_available_ram, run_script } from 'helpers/servers.js'
+import { total_available_ram, run_script } from 'helpers/servers.js'
 import { NS } from '@ns'
 import { Colors } from 'helpers/colors'
 

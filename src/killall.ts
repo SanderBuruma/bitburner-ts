@@ -6,10 +6,10 @@ export async function main(ns: NS) {
   let dont_kill_pids = ns.args.map(n=>parseInt(n.toString()))
 
   for (let s of servers) {
-    if (s == 'home') {
+    if (s.Name == 'home') {
       continue
     }
-    let scripts = ns.ps(s)
+    let scripts = s.RunningScripts
     if (scripts.length < 1) { 
       continue
     }

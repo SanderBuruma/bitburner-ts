@@ -4,7 +4,7 @@ import { NS } from '@ns'
 export async function main(ns: NS) {
   let servers = scan_all(ns)
   for (let s of servers) {
-    let files = ns.ls(s)
+    let files = s.Files
     .filter(s=>s.slice(-3) != '.js')
     .filter(s=>s.slice(-4) != '.lit')
 

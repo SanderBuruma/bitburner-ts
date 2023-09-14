@@ -1,4 +1,4 @@
-import { get_server_available_ram, rooted_servers, run_script, run_script_with_fraction_threads, servers_with_ram, total_available_ram } from 'helpers/servers.js'
+import { rooted_servers, run_script, total_available_ram } from 'helpers/servers.js'
 import { NS } from '@ns'
 import { Server } from '/classes/Server'
 import { log } from '/helpers/utils'
@@ -13,9 +13,9 @@ export async function main(ns: NS) {
   }
 }
 export function weaken_all(ns: NS) {
-  for (let s of rooted_servers(ns).filter(s=>!new Server(ns, s).AtMinSec))
+  for (let s of rooted_servers(ns).filter(s=>!new Server(ns, s.Name).AtMinSec))
   {
-    let server = new Server(ns, s)
+    let server = new Server(ns, s.Name)
     const w_threads = Math.ceil((server.Sec - server.MinSec)/.05)
     if (total_available_ram(ns, 2) < w_threads * 2) return false
     run_script(ns, 'simple/weaken.js', w_threads, server.Name)

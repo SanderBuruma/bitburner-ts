@@ -54,7 +54,7 @@ export async function main(ns: NS) {
 
     let purchased_server_cost = ns.getPurchasedServerCost(2**8)
     log(ns, 'Waiting to buy 8 extra servers for ' + Colors.Highlight(ns.formatNumber(purchased_server_cost)) + ' each')
-    while (rooted_servers(ns).filter(x=>/^server-(?:[1-9]|1[0-9]|2[0-5])$/.test(x)).length < 8) {
+    while (rooted_servers(ns).filter(x=>/^server-(?:[1-9]|1[0-9]|2[0-5])$/.test(x.Name)).length < 8) {
         await await_predicate(ns, ()=>ns.getPlayer().money > purchased_server_cost, 60e3 * 60)
         run_script(ns, 'buyserver.js')    
         await ns.sleep(250)
@@ -84,7 +84,7 @@ export async function main(ns: NS) {
 
 /** Hacks whichever target earns us the most money per unit of time without using grow */
 export async function hack_most_money(ns: NS) {
-    let new_target = lmt(ns, true, true, true)[0].name
+    let new_target = lmt(ns, true, true, true)[0].Name
     run_script_with_fraction_threads(ns, 'simple/hack.js', 0.95, new_target)
     await ns.sleep(ns.getHackTime(new_target) + 150)
 }

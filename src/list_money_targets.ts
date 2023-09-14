@@ -1,7 +1,6 @@
 import { rooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 import { write_to_port } from 'helpers/utils.js'
-import { IServerResult } from 'interfaces/IServerResult.js'
 import { Colors } from 'helpers/colors'
 import { Server } from './classes/Server'
 
@@ -13,15 +12,22 @@ export async function main(ns: NS) {
 
   if (method === 'lmt') {
     let servers = lmt(ns, cur_money, no_grow, hack_chance)
+    ns.tprintf(
+      '%s | %s | %s | %s', 
+      Colors.Highlight('Server'.padEnd(17, ' ')), 
+      Colors.Highlight('HackReq'.padEnd(8, ' ')), 
+      Colors.Highlight('AtMinSec'.padEnd(9, ' ')),
+      Colors.Highlight('StaticScore'.padEnd(11, ' ')),
+    )
+    ns.tprintf('%s', ''.padEnd(22+8+12+12, '-'))
     for (let s of servers) {
-      const atMinSec = new Server(ns, s.name).AtMinSec.toString()
-      const paddedServerName = s.name.padEnd(16, ' ');
       ns.tprintf(
-        'server: %s score: %s hackReq: %s atMinSec: %s', 
-        Colors.Highlight(s.name.padEnd(16, ' ')),
-        Colors.Highlight(ns.formatNumber(s.score).padEnd(8, " ")),
-        Colors.Highlight(s.hackingLv.toString().padEnd(5, " ")),
-        atMinSec==="true" ? Colors.Good(atMinSec) : Colors.Bad(atMinSec)
+          '%s %s %s %s', 
+          Colors.Highlight(s.Name.padEnd(22, ' ')),
+          Colors.Highlight(s.HackingRequirement.toString().padEnd(8, " ")),
+          (s.AtMinSec ? Colors.Good(s.AtMinSec.toString().padEnd(12, ' ')) : Colors.Bad(s.AtMinSec.toString().padEnd(12, ' '))),
+          Colors.Highlight(ns.formatNumber(s.StaticScore)
+        )
       )
     }
   } else if (method === 'lmt_to_ports') {
@@ -33,44 +39,36 @@ export async function main(ns: NS) {
 
 }
 
-export function lmt(ns: NS, cur_money = false, no_grow: boolean, hack_chance = false): IServerResult[] {
+export function lmt(ns: NS, cur_money = false, no_grow: boolean, hack_chance = false): Server[] {
   let servers = rooted_servers(ns)
 
   servers = servers
-  .filter(s=>ns.getHackingLevel() >= ns.getServerRequiredHackingLevel(s))
-  .filter(s=>ns.getServerMaxMoney(s) > 1000)
-  .sort((a,b)=>score_target(ns, b, cur_money, no_grow, hack_chance) - score_target(ns, a, cur_money, no_grow, hack_chance))
-  let return_servers: IServerResult[] = servers.map(s=>{
-    return {
-      name: s,
-      score: score_target(ns, s, cur_money, no_grow, hack_chance),
-      hackingLv: ns.getServerRequiredHackingLevel(s)
-    }
-  })
-  return return_servers
+  .filter(s=>ns.getHackingLevel() >= s.HackingRequirement)
+  .filter(s=>s.MaxMoney > 1000)
+  .sort((a,b)=>score_target(b, cur_money, no_grow, hack_chance) - score_target(a, cur_money, no_grow, hack_chance))
+  return servers
 }
 
-function score_target(ns: NS, target: string, use_cur_money: boolean, no_grow: boolean, hack_chance: boolean = false) {
-  if (target === 'n00dles') return 0
-  if (target === 'foodnstuff') return 0
+function score_target(target: Server, use_cur_money: boolean, no_grow: boolean, hack_chance: boolean = false) {
+  if (target.Name === 'n00dles') return 0
+  if (target.Name === 'foodnstuff') return 0
+
 
   let score: number
-  if (use_cur_money) score = ns.getServerMoneyAvailable(target) || 1
-  else score = ns.getServerMaxMoney(target) || 1
+  if (use_cur_money) score = target.Money || 1
+  else score = target.MaxMoney || 1
 
-  score /= ns.getServerMinSecurityLevel(target) || 1
+  score /= target.MinSec || 1
 
-  score /= (ns.getServerRequiredHackingLevel(target)+50) * 1e3
-
-  score *= ns.getServerGrowth(target)
+  score /= target.HackingRequirement * 1e3
 
   if (!no_grow) {
-    score /= ns.getServerGrowth(target) + 100
-    score *= 100
+    score *= target.GrowthParam
+    score /= 50
   }
 
   if (hack_chance) {
-    score *= ns.hackAnalyzeChance(target)
+    score *= target.HackingChance
   }
 
   return score*20
@@ -78,7 +76,7 @@ function score_target(ns: NS, target: string, use_cur_money: boolean, no_grow: b
 
 function summarize_repeat_scripts(ns: NS) {
   let repeat_scripts = rooted_servers(ns)
-  .map(server=>ns.ps(server))
+  .map(server=>server.RunningScripts)
   .reduce((a,c)=>a.concat(c), [])
   .filter(script=>script.filename.includes('repeat/'))
 
