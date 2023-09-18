@@ -75,6 +75,7 @@ export function run_script(ns: NS, scriptName: string, threads: number = 1, ...a
   let ram_requirement = threads * script_ram
   if (ram_requirement > total_available_ram(ns, script_ram))
   {
+    
     throw new Error(
       'Ram requirement: ' + ns.formatRam(ram_requirement) + 
       ' is greater than available ram: ' + ns.formatRam(total_available_ram(ns, script_ram))
@@ -127,13 +128,13 @@ export function run_script(ns: NS, scriptName: string, threads: number = 1, ...a
 }
 
 export function run_script_with_fraction_threads(ns: NS, filename: string, threads_fraction: number = 1, ...aargs: string[]) {
-  if (threads_fraction >= 1 || threads_fraction <= 0) throw new Error('threads_fraction argument must be between 0 and 1')
+  if (threads_fraction > 1 || threads_fraction <= 0) throw new Error('threads_fraction argument must be between 0 and 1')
   const script_ram = ns.getScriptRam(filename)
   const av_ram = total_available_ram(ns, script_ram)
   if (!ns.fileExists(filename)) throw new Error('File: ' + filename + ' does not exist')
   if (script_ram > av_ram) throw new Error('Not enough ram available on any server')
   const threads = Math.floor(av_ram/script_ram * threads_fraction)
-  if (threads < 1 || threads % 1 !== 0 || threads === Infinity) throw new Error('There is somehing wrong with threads: ' + threads)
+  if (threads < 1 || threads % 1 !== 0 || threads === Infinity) throw new Error('There is something wrong with threads: ' + threads + ' filename ' + filename)
   run_script(
     ns, 
     filename, 
@@ -142,6 +143,28 @@ export function run_script_with_fraction_threads(ns: NS, filename: string, threa
 }
 
 export function total_money(ns: NS) {
-  let total_money = rooted_servers(ns).reduce((a,c)=>{return a + c.Money},0)
+  let total_money = rooted_servers(ns)
+  .filter(s=>s.HackingRequirement <= ns.getPlayer().skills.hacking)
+  .reduce((a,c)=>{return a + c.Money},0)
   return (total_money - ns.getPlayer().money)
+}
+
+export function continuous_targets(ns: NS, filter_by_atminsec: boolean = true) {
+  let targets = rooted_servers(ns)
+  .filter(s=>
+    s.MaxMoney > 1e3 && 
+    ns.getPlayer().skills.hacking > s.HackingRequirement
+  )
+
+  if (filter_by_atminsec) {
+    targets = targets.filter(s=>s.AtMinSec)
+  }
+  return targets.sort((a,b)=>b.StaticScore - a.StaticScore)
+}
+
+export function no_grow_targets(ns: NS) {
+  let targets = rooted_servers(ns)
+  .filter(s=>s.MaxMoney > 1e3 && ns.getPlayer().skills.hacking >= s.HackingRequirement)
+  .sort((a,b)=>b.NoGrowScore - a.NoGrowScore)
+  return targets
 }

@@ -1,9 +1,26 @@
 import { NS } from '@ns'
-import { rooted_servers, run_script, run_script_with_fraction_threads, scan_all } from '/helpers/servers'
-import { lmt } from '/list_money_targets'
+import { no_grow_targets, rooted_servers, run_script, run_script_with_fraction_threads } from '/helpers/servers'
 import { await_predicate, log, run_write_read } from '/helpers/utils'
 import { hgw_continuous_best_target } from 'singularity/start_after_reset'
 import { Colors } from '/helpers/colors'
+
+
+interface HackManagerThreshold {
+    predicate: (ns: NS)=>boolean
+    callback: (ns: NS)=>number
+}
+
+/** A successive list of servers to hack when the predicate is true */
+let hack_manager_thresholds: HackManagerThreshold[]= [{
+    predicate: (ns: NS)=>{return ns.hasRootAccess('n00dles')},
+    callback: (ns: NS)=>run_script(ns, 'singularity/hack_manager.js', 1, 'n00dles', '.95', '1.1'),
+}, {
+    predicate: (ns: NS)=>{return ns.getPlayer().skills.hacking > 100},
+    callback: (ns: NS)=>run_script(ns, 'singularity/hack_manager.js', 1, 'n00dles', '3.2', '1.5')
+}, {
+    predicate: (ns: NS)=>{ return ns.getPlayer().skills.hacking > 300 && ns.hasRootAccess('phantasy') },
+    callback: (ns: NS)=>run_script(ns, 'singularity/hack_manager.js', 1, 'phantasy', '1.8', '1.5')
+}]
 
 export async function main(ns: NS) {
     ns.disableLog('ALL')
@@ -38,6 +55,7 @@ export async function main(ns: NS) {
     await wait_and_buy_program(ns, 500e3, 'BruteSSH.exe')
     await wait_and_buy_program(ns, 1.5e6, 'FTPCrack.exe')
     await wait_and_buy_program(ns, 5e6, 'relaySMTP.exe')
+    let hack_manager_pid = 
     
     log(ns, 'Activism with CSEC')
     run_script(ns, 'connect.js', 1, 'CSEC')
@@ -49,20 +67,20 @@ export async function main(ns: NS) {
     await ns.sleep(250)
 
     await hgw_continuous_best_target(ns)
-    await wait_and_buy_program(ns, 30e6, 'HTTPWorm.exe', false)
+    await wait_and_buy_program(ns, 30e6, 'HTTPWorm.exe')
     await hgw_continuous_best_target(ns)
 
     let purchased_server_cost = ns.getPurchasedServerCost(2**8)
     log(ns, 'Waiting to buy 8 extra servers for ' + Colors.Highlight(ns.formatNumber(purchased_server_cost)) + ' each')
     while (rooted_servers(ns).filter(x=>/^server-(?:[1-9]|1[0-9]|2[0-5])$/.test(x.Name)).length < 8) {
         await await_predicate(ns, ()=>ns.getPlayer().money > purchased_server_cost, 60e3 * 60)
-        run_script(ns, 'buyserver.js')    
+        ns.purchaseServer('server-'+(ns.getPurchasedServers().length+1), 2**8)
         await ns.sleep(250)
         await hgw_continuous_best_target(ns)
     }
     await ns.sleep(250)
 
-    await wait_and_buy_program(ns, 250e6, 'SQLInject.exe', false)
+    await wait_and_buy_program(ns, 250e6, 'SQLInject.exe')
 
     log(ns, 'Wait to upgrade home RAM so we can run followup script')
     while (ns.getServerMaxRam('home') < 2**6) 
@@ -84,19 +102,23 @@ export async function main(ns: NS) {
 
 /** Hacks whichever target earns us the most money per unit of time without using grow */
 export async function hack_most_money(ns: NS) {
-    let new_target = lmt(ns, true, true, true)[0].Name
-    run_script_with_fraction_threads(ns, 'simple/hack.js', 0.95, new_target)
-    await ns.sleep(ns.getHackTime(new_target) + 150)
+    let new_target = no_grow_targets(ns)[0]
+
+    run_script_with_fraction_threads(ns, 'simple/hack.js', 0.95, new_target.Name)
+    await ns.sleep(ns.getHackTime(new_target.Name) + 150)
 }
 
 /** Wait until we have enough money to buy a program before buying it */
-export async function wait_and_buy_program(ns: NS, money: number, program: string, no_grow: boolean = true) {
+let hack_manager_pid: number = 0
+export async function wait_and_buy_program(ns: NS, money: number, program: string) {
     log(ns, 'Waiting to buy program ' + Colors.Highlight(program))
     while (ns.getPlayer().money < money) {
-        if (no_grow) {
-            await hack_most_money(ns)
-        } else {
-            await hgw_continuous_best_target(ns, 0.85)
+        if (hack_manager_thresholds.length > 0 && hack_manager_thresholds[0]?.predicate(ns)) {
+            let hmt = hack_manager_thresholds[0]
+            if (hack_manager_pid > 0) ns.kill(hack_manager_pid)
+            hack_manager_pid = hmt.callback(ns)
+            hack_manager_thresholds.shift()
+            log(ns, 'Updating hack manager to:\n' + Colors.Highlight(hmt.callback.toString()))
         }
         await ns.sleep(100)
     }

@@ -13,10 +13,9 @@ export async function main(ns: NS) {
 
   let maxPorts = ports_we_can_hack(ns)
   let allServers = nonrooted_servers(ns).filter(x=>ns.getServerNumPortsRequired(x.Name)<=maxPorts)
-  let nuked_something = false
   let count = 0
   allServers.forEach(s=>{
-    if (s.PortsRequirement === maxPorts) {
+    if (s.PortsRequirement <= maxPorts) {
       if (bruteExists) ns.brutessh(s.Name)
       if (relayExists) ns.relaysmtp(s.Name)
       if (sqlExists) ns.sqlinject(s.Name)
@@ -24,7 +23,6 @@ export async function main(ns: NS) {
       if (ftpExists) ns.ftpcrack(s.Name)
       ns.nuke(s.Name)
       count++
-      nuked_something = true
     }
   })
 

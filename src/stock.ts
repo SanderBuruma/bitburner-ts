@@ -1,13 +1,13 @@
 import { NS } from '@ns'
 import { log } from 'helpers/utils.js'
+import { Colors } from './helpers/colors'
 
 let symbols: string[]
 let tick_duration = 4e3
 export async function main(ns: NS) {
-  let buy_treshold: number = parseFloat(ns.args[0].toString()) * 1e9
-  if (!ns.stock.hasWSEAccount()) {
+  let buy_treshold: number = parseFloat(ns.args[0]?.toString() ?? '1') * 1e9
+  if (!ns.stock.hasWSEAccount() || !ns.stock.has4SDataTIXAPI() || !ns.stock.hasTIXAPIAccess()) {
     throw new Error('Don\'t have a WSE account! We need it to be able to trade!')
-
   }
 
   ns.disableLog('ALL')
@@ -26,8 +26,15 @@ export async function main(ns: NS) {
     for (let o of owned_stocks) {
       if (ns.stock.sellStock(o.sym, o.position[0])) {
         let x = ns.formatNumber(o.position[0] * ns.stock.getBidPrice(o.sym))
-        let profit = ns.formatNumber(o.position[0] * (ns.stock.getBidPrice(o.sym) - o.position[1]))
-        log(ns, `Sold ${o.sym} for \$${x} and profit ${profit}`)
+        let profit = (ns.stock.getBidPrice(o.sym) - o.position[1]) * o.position[0]
+        let profit_message: string
+        if (profit > 0) {
+          profit_message = Colors.Good(ns.formatNumber(profit))
+        } else {
+          profit_message = Colors.Bad(ns.formatNumber(profit))
+        }
+        
+        log(ns, `Sold ${Colors.Highlight(o.sym)} for ${Colors.Highlight(x)} and profit ${profit_message}`)
       }
     }
   })
@@ -72,16 +79,14 @@ export async function main(ns: NS) {
       }
     })
     .filter(s => {
-      return s.forecast > .57 && 
-        s.freeCap > buy_treshold && 
-        s.volatility < .02
+      return s.freeCap > buy_treshold
     })
     .sort((a, b) => b.forecast - a.forecast)
-    if (to_buy_corps.length < 1 || ns.getPlayer().money > buy_treshold) continue
+    let player = ns.getPlayer()
+    if (to_buy_corps.length < 1 || player.money < buy_treshold) continue
 
     // buy corporation stocks
     let sharesToBuy
-    ns.tprint({to_buy_corps})
     let corp = to_buy_corps[0]
     if (!corp || !corp.freeCap) continue
     if (corp.freeCap > ns.getPlayer().money - buy_treshold) {
@@ -89,7 +94,6 @@ export async function main(ns: NS) {
     } else {
       sharesToBuy = Math.floor((corp.freeCap) / ns.stock.getAskPrice(corp.sym))
     }
-    let price = ns.formatNumber(sharesToBuy * ns.stock.getAskPrice(corp.sym))
     if (ns.stock.getAskPrice(corp.sym) < 1) continue
 
     let result = ns.stock.buyStock(corp.sym, sharesToBuy)

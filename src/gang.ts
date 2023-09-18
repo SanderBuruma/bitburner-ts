@@ -1,5 +1,6 @@
 import { log, kill_previous } from 'helpers/utils.js'
 import { NS } from '@ns'
+import { Colors } from 'helpers/colors'
 
 export async function main(ns: NS) {
   ns.disableLog('ALL')
@@ -34,15 +35,15 @@ export async function activate(ns: NS) {
     for (let m of members) {
       if (m.str < 8000 && m.task != 'Train Combat') {
         ns.gang.setMemberTask(m.name, 'Train Combat')
-        log(ns, m.name + ' went to Train Combat')
+        log(ns, Colors.Highlight(m.name) + ' went to Train Combat')
         
       } else if (m.str >= 8000 && strongest_enemy_gang.power > power/2 && m.task != 'Territory Warfare') {
         ns.gang.setMemberTask(m.name, 'Territory Warfare')
-        log(ns, m.name + ' went to Territory Warfare')
+        log(ns, Colors.Highlight(m.name) + ' went to Territory Warfare')
 
       } else if (m.str >= 8000 && strongest_enemy_gang.power < power/1.5 && m.task != 'Human Trafficking') {
         ns.gang.setMemberTask(m.name, 'Human Trafficking')
-        log(ns, m.name + ' went to Smuggle Christians out of Saracen lands')
+        log(ns, Colors.Highlight(m.name) + ' went to Smuggle Christians out of Saracen lands')
       }
     }
 
@@ -59,9 +60,9 @@ export async function activate(ns: NS) {
       let str2 = parseFloat(str)
       if (str2 > 4 / 3 && m.task == 'Train Combat') {
         if (ns.gang.ascendMember(m.name)) {
-          log(ns, `Ascending ${m.name} at str_exp:${ns.formatNumber(m.str_exp)}`)
+          log(ns, `Ascending ${Colors.Good(m.name)} at str_exp:${ns.formatNumber(m.str_exp)}`)
         } else {
-          log(ns, `${m.name} ascension failed`)
+          log(ns, Colors.Bad() + `${m.name} ascension failed`)
         }
       }
     }
@@ -72,7 +73,7 @@ export async function activate(ns: NS) {
       if (!ns.gang.recruitMember(newName)) {
         throw new Error('Couldn\'t recruit ' + newName)
       } else {
-        log(ns, newName + ' has been recruited!')
+        log(ns, Colors.Highlight(newName) + ' has been recruited!')
         members = ns.gang.getMemberNames().map(m => ns.gang.getMemberInformation(m))
       }
     }
@@ -83,11 +84,11 @@ export async function activate(ns: NS) {
     if (!gang_info.territoryWarfareEngaged && strongest_enemy_gang.power < power/1.4) {
       // If the most powerful gang is twice as weak, turn on territory warfare.
       ns.gang.setTerritoryWarfare(true)
-      log(ns, 'Turned on gang warfare, enemy power:' + ns.formatNumber(strongest_enemy_gang.power) + ' vs us:' + ns.formatNumber(power))
+      log(ns, Colors.Good() + 'Turned on gang warfare, enemy power:' + ns.formatNumber(strongest_enemy_gang.power) + ' vs us:' + ns.formatNumber(power))
     } else if (gang_info.territoryWarfareEngaged && strongest_enemy_gang.power > power) {
       // If the most powerful gang is getting equally strong, turn on territory warfare.
       ns.gang.setTerritoryWarfare(false)
-      log(ns, 'Turned off gang warfare, enemy power:' + ns.formatNumber(strongest_enemy_gang.power) + ' vs us:' + ns.formatNumber(power))
+      log(ns, Colors.Bad() + 'Turned off gang warfare, enemy power:' + ns.formatNumber(strongest_enemy_gang.power) + ' vs us:' + ns.formatNumber(power))
     }
 
     // Loop only once per second

@@ -10,6 +10,6 @@ export async function main(ns: NS) {
 
     if (files.length < 1) continue
 
-    ns.tprint({server:s, files})
+    ns.tprintf(JSON.stringify({server:s.Name, files}, null, 2))
   }
 }

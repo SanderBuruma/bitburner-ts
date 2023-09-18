@@ -17,9 +17,19 @@ export async function main(ns: NS) {
     ns.printf(JSON.stringify(result, null, 2))
   } else if (f == 'summarize_scripts') {
     let results = summarize_scripts(ns)
+    ns.tprintf(
+      '%s%s',
+      Colors.Highlight('script+args'.padEnd(61, ' ')),
+      Colors.Highlight('threads'.padEnd(8, ' ')),
+    )
+    ns.tprintf(''.padEnd(61+14, '-'))
     for (let result of results)
     {
-      ns.tprintf('%s uses %s threads', Colors.Highlight(result.name_args.padEnd(60)), Colors.Highlight(ns.formatNumber(result.threads, 0)))
+      ns.tprintf(
+        '%s  %s', 
+        Colors.Highlight(result.name_args.padEnd(60)), 
+        Colors.Highlight(ns.formatNumber(result.threads, result.threads >= 1e3 ? 3 : 0).padEnd(8, ' '))
+      )
     }
   } else {
     throw new Error('Variable f doesn\'t call for a valid value')
@@ -144,7 +154,7 @@ function summarize_scripts(ns: NS) {
   let targets_plus_args = repeat_scripts.map(script=>{
     return {
       name_args: script.filename + " " + script.args.join(', '),
-      threads: script.threads
+      threads: script.threads,
     }
   })
   let ar: {name_args: string, threads: number}[] = []

@@ -46,7 +46,10 @@ export async function wait_to_install_all_augs(ns: NS, waiting_callback: () => P
         await waiting_callback()
         await ns.sleep(250)
     }
+    buy_nfgs(ns, faction)
+}
 
+export function buy_nfgs(ns: NS, faction: string) {
     // Buy as many NeuroFlux Governors as we can 
     let nfgLevels = 0
     while (ns.singularity.purchaseAugmentation(faction, 'NeuroFlux Governor')) nfgLevels++

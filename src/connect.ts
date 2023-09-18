@@ -1,8 +1,9 @@
-import { log } from 'helpers/utils.js'
 import { NS } from '@ns'
 
 export async function main(ns: NS) {
-    let target = ns.args[0]?.toString() ?? 'foodnstuff';
+    connect_directly(ns, ns.args[0]?.toString() ?? 'foodnstuff')
+}
+export function connect_directly(ns: NS, target: string) {
     let path = recur(ns, ['home'], target, 'home');
     if (!path) throw new Error('Couldn\'t find a path to ' + target)
     for (let s of path) {
