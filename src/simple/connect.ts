@@ -1,14 +1,15 @@
 import { NS } from '@ns'
+import { exe_command } from '/doc/getdoc';
 
 export async function main(ns: NS) {
-    connect_directly(ns, ns.args[0]?.toString() ?? 'foodnstuff')
+    connect_directly(ns, ns.args[0]?.toString() ?? 'CSEC')
 }
-export function connect_directly(ns: NS, target: string) {
+export async function connect_directly(ns: NS, target: string) {
     let path = recur(ns, ['home'], target, 'home');
+    let command = ('connect ' + path?.join('; connect '))
+    ns.tprintf(command)
     if (!path) throw new Error('Couldn\'t find a path to ' + target)
-    for (let s of path) {
-        ns.singularity.connect(s)
-    }
+    await exe_command(ns, eval('document'), command)
 }
 
 function recur(ns: NS, visited: string[], target: string, current: string): string[] | null {

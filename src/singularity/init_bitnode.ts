@@ -58,10 +58,10 @@ export async function main(ns: NS) {
     let hack_manager_pid = 
     
     log(ns, 'Activism with CSEC')
-    run_script(ns, 'connect.js', 1, 'CSEC')
+    run_script(ns, 'simple/connect.js', 1, 'CSEC')
     await ns.sleep(250)
     await ns.singularity.installBackdoor()
-    run_script(ns, 'connect.js', 1, 'home')
+    run_script(ns, 'simple/connect.js', 1, 'home')
     await ns.sleep(250)
     run_script(ns, 'simple/work_for_faction.js', 1, 'CyberSec', 'hacking')
     await ns.sleep(250)

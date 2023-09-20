@@ -7,7 +7,7 @@ import { Server } from '/classes/Server'
 import { weaken_all } from '/simple/weaken_all'
 import { buy_servers } from 'simple/buy_servers'
 import { buy_nfgs } from '/simple/buy_augs'
-import { connect_directly } from '/connect'
+import { connect_directly } from '../simple/connect'
 
 let runmode: string
 let next_faction_with_augs: string
@@ -227,7 +227,7 @@ async function backdoor_everything(ns: NS) {
   for (let s of servers) {
     let server = ns.getServer(s.Name)
     if (!server.backdoorInstalled && ns.getPlayer().skills.hacking >= (server.requiredHackingSkill ?? 0)) {
-      if (!run_script(ns, 'connect.js', 1, s.Name)) return
+      if (!run_script(ns, 'simple/connect.js', 1, s.Name)) return
       await ns.sleep(250)
       await ns.singularity.installBackdoor()
       ns.singularity.connect('home')
@@ -507,6 +507,6 @@ async function endgame_now(ns: NS) {
     await ns.sleep(1000)
   }
 
-  connect_directly(ns, 'w0r1d_d43m0n')
+  await connect_directly(ns, 'w0r1d_d43m0n')
   ns.singularity.destroyW0r1dD43m0n(5, 'singularity/init_bitnode.js')
 }
