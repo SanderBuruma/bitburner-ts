@@ -56,8 +56,8 @@ export class Server {
     )}
 
     public get HackTime(): number { return this.ns.getHackTime(this.Name) }
-    public get GrowTime(): number { return this.ns.getGrowTime(this.Name) }
-    public get WeakenTime(): number { return this.ns.getWeakenTime(this.Name) }
+    public get GrowTime(): number { return this.HackTime * 3.2 }
+    public get WeakenTime(): number { return this.HackTime * 4 }
    
     public get RunningScripts() { return this.ns.ps(this.Name)}
 

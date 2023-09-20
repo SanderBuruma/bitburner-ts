@@ -25,6 +25,7 @@ class QueItem {
 
 export async function main(ns: NS) {
     set_log_settings(ns, true, false)
+    let this_filename = ns.getRunningScript()?.filename??''
 
     let que: QueItem[] = []
     if (ns.args.length !== 3) log(ns, Colors.Warning()+"We need 3 parameters, target, timingFactor and multiplier. Selecting defaults instead for the missing parameters")
@@ -55,7 +56,7 @@ export async function main(ns: NS) {
                 weaken_threads = Math.ceil(weaken_threads + (server.Sec-server.MinSec)/.05)
             }
             nextWeaken = Math.floor(Date.now() + ns.getWeakenTime(target) / timing_factor)
-            run_script(ns, 'simple/weaken.js', weaken_threads, target) 
+            run_script(ns, 'simple/weaken.js', weaken_threads, target, this_filename) 
             if (server.AtMinSec) que.push(new QueItem(ns, target, "w", weaken_threads, multiplier))
         }
 
@@ -78,7 +79,7 @@ export async function main(ns: NS) {
 
             let hgw_rs = hack_grow_weaken_ratios(ns, next_weaken.target, next_weaken.multiplier)
             let grow_threads = Math.ceil(hgw_rs.grow_threads*1.2)
-            run_script(ns, 'simple/grow.js', grow_threads, next_weaken.target) 
+            run_script(ns, 'simple/grow.js', grow_threads, next_weaken.target, this_filename) 
             que.push(new QueItem(ns, next_weaken.target, "g", grow_threads, next_weaken.multiplier))
         }
 
@@ -108,7 +109,7 @@ export async function main(ns: NS) {
             if (i.growfinishtime_lessthan_hackfinishtime) {
                 ns.printf(JSON.stringify(i, null, 2))
             } else {
-                run_script(ns, 'simple/hack.js', hack_threads, next_grow.target) 
+                run_script(ns, 'simple/hack.js', hack_threads, next_grow.target, this_filename) 
                 que.push(new QueItem(ns, next_grow.target, "h", hack_threads, next_grow.multiplier))
             }
         }

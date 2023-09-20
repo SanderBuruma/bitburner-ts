@@ -42,11 +42,6 @@ export function nonrooted_servers(ns: NS) {
   return scan_all(ns).filter(s=>!s.Rooted)
 }
 
-export function servers_with_ram(ns: NS, treshold = 16) {
-  return rooted_servers(ns)
-  .filter(s=>s.AvailableRam >= treshold)
-}
-
 /** @description returns the total ram available on all servers */
 export function total_max_ram(ns: NS) {
   let servers = rooted_servers(ns)
@@ -58,7 +53,7 @@ export function total_max_ram(ns: NS) {
 }
 
 /** @description returns the total ram available on all servers with more than minimum_ram*/
-export function total_available_ram(ns: NS, minimum_ram = 8) {
+export function total_available_ram(ns: NS, minimum_ram = 1.75) {
   let servers = rooted_servers(ns)
   let serversTotalRam = (servers.reduce((a,s)=>{
     return s.AvailableRam >= minimum_ram ? a + s.AvailableRam : a
@@ -66,7 +61,7 @@ export function total_available_ram(ns: NS, minimum_ram = 8) {
   return serversTotalRam
 }
 
-/** @description attempts to run a script on the largest available server or spread among many others if multi threaded
+/** @description attempts to run a script on the largest available server or else spread among many others if multi threaded
  * @return boolean whether or not the script was run */
 export function run_script(ns: NS, scriptName: string, threads: number = 1, ...aargs: string[]) {
   let script_ram = ns.getScriptRam(scriptName)

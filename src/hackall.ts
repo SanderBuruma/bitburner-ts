@@ -1,4 +1,4 @@
-import { nonrooted_servers, run_script } from 'helpers/servers.js'
+import { nonrooted_servers } from 'helpers/servers.js'
 import { NS } from '@ns'
 import { log } from 'helpers/utils'
 import { Colors } from 'helpers/colors'

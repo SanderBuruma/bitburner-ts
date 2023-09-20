@@ -5,18 +5,19 @@ import { Colors } from '/helpers/colors'
 import { ports_we_can_hack } from '/hackall'
 
 export async function main(ns: NS) {
+  ns.disableLog('ALL')
   let ram_fraction = parseFloat(ns.args[0]?.toString() ?? '.5')
   if (ram_fraction > 1 || ram_fraction <= 0) throw new Error('weaken_all needs a fraction argument between 0 and 1')
-  if (weaken_all(ns, ram_fraction)) {
-    log(ns, Colors.Good() + 'Initiated weaken all versus all servers with ' + Colors.Highlight(ports_we_can_hack(ns).toString()) + ' ports or less which were not at minimum security')
-  } else {
-    log(ns, Colors.Warning() + 'Initiated weaken all versus some but not ALL servers with ' + Colors.Highlight(ports_we_can_hack(ns).toString()) + ' ports or less which were not at minimum security')
+  log(ns, Colors.Warning() + 'Initiated weaken all versus some but not ALL servers with ' + Colors.Highlight(ports_we_can_hack(ns).toString()) + ' ports or less which were not at minimum security, will continue spawning weaken scripts until all rooted servers are reduced')
+  while (!weaken_all(ns, ram_fraction)) {
+    await ns.sleep(1e3)
   }
+  log(ns, Colors.Good() + 'Initiated weaken all versus all servers with ' + Colors.Highlight(ports_we_can_hack(ns).toString()) + ' ports or less which were not at minimum security')
 }
 /** @param {number} ram_fraction How much of your total ram to use 
  * @return {boolean} whether or not all servers are being weakened
 */
-export function weaken_all(ns: NS, ram_fraction: number = .5) {
+export function weaken_all(ns: NS, ram_fraction: number = .5): boolean {
   let script_ram = ns.getScriptRam('simple/weaken.js')
   let tm_ram = total_max_ram(ns)
   for (let target of rooted_servers(ns).filter(server=>server.Rooted && !server.AtMinSec).sort((a,b)=>a.HackingRequirement - b.HackingRequirement))
@@ -33,7 +34,7 @@ export function weaken_all(ns: NS, ram_fraction: number = .5) {
     if (ta_ram < w_threads * script_ram) {
       throw new RangeError('This shouldn\'t happen..., not enough available ram\nta_ram < w_threads * script_ram')
     }
-    run_script(ns, 'simple/weaken.js', w_threads, target.Name)
+    run_script(ns, 'simple/weaken.js', w_threads, target.Name, ns.getRunningScript()?.filename??'')
   }
   return true
 }
